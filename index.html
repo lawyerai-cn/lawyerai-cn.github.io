@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LexFlow · 法律AI工具集</title>
+<meta name="description" content="AI立案、AI脱敏、AI工商文书生成、合同风险分析、AI商务邮件起草、智能新法规推送与定制化咨询的一体化工具集。">
+<style>
+  :root{
+    --bg: #0b0d11; --card:#12161c; --soft:#1a2029; --text:#eef2f7; --muted:#a8b3c4;
+    --brand:#7aa2ff; --brand-2:#8ef3c5; --accent:#ffd166; --danger:#ff6b6b; --ok:#23d18b;
+    --ring:0 0 0 2px rgba(122,162,255,.25);
+    --radius:14px; --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  /* Light theme */
+  :root[data-theme="light"]{
+    --bg:#f6f8fb; --card:#ffffff; --soft:#f1f5fb; --text:#0b1220; --muted:#516075;
+    --brand:#2b5cff; --brand-2:#17a673; --accent:#b08800; --danger:#c62828; --ok:#148c5a;
+    --ring:0 0 0 2px rgba(43,92,255,.18);
+    --radius:14px; --shadow: 0 10px 30px rgba(0,0,0,.08);
+  }
+  :root[data-theme="light"] body{
+    background:linear-gradient(180deg,#eef2f9 0%,#f7f9ff 100%);
+    color:var(--text);
+  }
+  :root[data-theme="light"] .card{ 
+    background:#fff; border:1px solid #e5eaf3; box-shadow: var(--shadow);
+  }
+  :root[data-theme="light"] .glass{
+    background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(255,255,255,.82));
+    border:1px solid #e6ebf5;
+  }
+  :root[data-theme="light"] header{
+    background:rgba(255,255,255,.75); border-bottom:1px solid #e8edf7;
+  }
+  :root[data-theme="light"] input, :root[data-theme="light"] select, :root[data-theme="light"] textarea{
+    background:#fff; border:1px solid #e1e6f0; color:var(--text);
+  }
+  :root[data-theme="light"] .pill{ background:#f0f4ff; border:1px solid #dbe5ff; color:#2b5cff; }
+  :root[data-theme="light"] .btn{ border-color:#d9e1f0; background:linear-gradient(180deg,#ffffff,#f6f8fc); }
+  :root[data-theme="light"] .btn-primary{ background:linear-gradient(180deg,#3a5bff,#2948e3); border-color:#3552f3; color:#fff; }
+  :root[data-theme="light"] .nav a{ color:#5d6b84; }
+  :root[data-theme="light"] .footer{ color:#5d6b84; border-top:1px solid #e8edf7; }
+
+  *{box-sizing:border-box}
+  html,body{margin:0; background:linear-gradient(180deg,#0b0d11 0%,#0d1016 100%); color:var(--text); font-family: ui-sans-serif,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",Arial;}
+  a{color:var(--brand); text-decoration:none}
+  .container{max-width:1200px; margin:0 auto; padding:24px}
+  header{position:sticky; top:0; backdrop-filter: blur(8px); background: rgba(11,13,17,.6); border-bottom:1px solid #1f2632; z-index:50}
+  .nav{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0}
+  .logo{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px}
+  .logo-badge{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center; box-shadow: var(--shadow)}
+  .logo-badge svg{filter: drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+  .nav a{color:var(--muted)}
+  .nav-links{display:flex; gap:18px; align-items:center; font-size:14px}
+  .btn{border:1px solid #263042; background: linear-gradient(180deg,#151b24,#12161c); color:var(--text); padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s ease; box-shadow: inset 0 -4px 18px rgba(255,255,255,.02)}
+  .btn:hover{transform: translateY(-1px); border-color:#334158}
+  .btn-primary{background: linear-gradient(180deg,#2a4bff,#2036c9); border-color:#3f57ff}
+  .btn-ghost{background: transparent; border-color:#2a3342}
+  .hero{display:grid; grid-template-columns: 1.1fr .9fr; gap:26px; padding:40px 0 28px}
+  .hero h1{font-size:40px; line-height:1.15; margin:0 0 12px}
+  .hero p{color:var(--muted); margin:0 0 16px}
+  .hero .cta{display:flex; gap:12px; flex-wrap:wrap}
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#131823; border:1px solid #242f40; color:#b7c3d6; border-radius:999px; font-size:12px}
+  .price-badge{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; background:#0f1420; border:1px solid #203047; color:#9dd0ff; border-radius:8px; font-size:12px}
+  .card{background: linear-gradient(180deg,#12161c,#0f1319); border:1px solid #1d2431; border-radius: var(--radius); padding:18px; box-shadow: var(--shadow)}
+  .glass{background: linear-gradient(180deg, rgba(18,22,28,.8), rgba(12,15,20,.7)); border:1px solid rgba(55,65,81,.45)}
+  .grid{display:grid; gap:18px}
+  .grid.cols-3{grid-template-columns: repeat(3,1fr)}
+  .grid.cols-2{grid-template-columns: repeat(2,1fr)}
+  .tool{display:flex; flex-direction:column; gap:12px; position:relative; overflow:hidden}
+  .tool h3{margin:0; font-size:18px; display:flex; align-items:center; gap:8px}
+  .tool p{margin:0; color:var(--muted); font-size:14px}
+  .tool .tool-head{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+  .pill{font-size:11px; padding:4px 8px; background:#0f1420; border:1px solid #203047; color:#9db2cd; border-radius:999px}
+  .tool .actions{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap}
+  .footer{margin-top:30px; border-top:1px solid #1f2632; color:#8fa1b8; font-size:13px; padding:20px 0 40px}
+  .shadow-ring:focus{outline:none; box-shadow: var(--ring)}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+  /* forms */
+  label{font-size:13px; color:#b9c6d9}
+  input,select,textarea{width:100%; padding:10px 12px; border-radius:12px; border:1px solid #243044; background:#0f141d; color:var(--text)}
+  textarea{min-height:120px; resize:vertical}
+  .row{display:grid; gap:12px; grid-template-columns:1fr 1fr}
+  .muted{color:var(--muted)}
+  /* modal */
+  .modal{position: fixed; inset:0; display:none; align-items:center; justify-content:center; padding:24px; z-index:100}
+  .modal.open{display:flex}
+  .modal-layer{position:absolute; inset:0; background:rgba(3,7,13,.6); backdrop-filter: blur(4px)}
+  .modal-card{position:relative; width:min(880px,100%); max-height:85vh; overflow:auto}
+  .modal h3{margin-top:0}
+  .close-x{position:absolute; right:8px; top:8px; background:#12161c; border:1px solid #2a364b; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; cursor:pointer}
+  /* responsive */
+  @media (max-width:980px){
+    .hero{grid-template-columns:1fr}
+    .grid.cols-3{grid-template-columns:1fr}
+    .grid.cols-2{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <div class="logo">
+      <div class="logo-badge" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#0b0d11" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l3.2 6.5L22 9l-5 4.9L18.4 21 12 17.7 5.6 21 7 13.9 2 9l6.8-.5L12 2z"/>
+        </svg>
+      </div>
+      LexFlow
+      <span class="pill">Beta</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#tools">功能</a>
+      <a href="#pricing">方案</a>
+      <a href="#contact">联系</a>
+      <button class="btn btn-ghost" id="toggleThemeBtn" title="主题">浅色</button>
+      <button class="btn btn-primary" data-open="demoContact">演示</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <div class="card glass">
+      <span class="badge">⚖️ 一体化 · 面向律所与企业法务</span>
+      <h1>把日常法律工作“自动化 + 智能化”</h1>
+      <p>从立案到风控、从合同审核到商务邮件写作、从工商文书到法规雷达，LexFlow 以隐私优先的合规方案，帮助你在几分钟内完成过去需要数小时的重复性工作。</p>
+      <div class="cta">
+        <button class="btn btn-primary" data-open="demoRouting">立即体验 · AI 立案</button>
+        <button class="btn" data-open="demoContract">试用 · 合同风险分析</button>
+        <button class="btn" data-open="demoMail">试用 · 商务邮件起草</button>
+      </div>
+      <p class="muted" style="margin-top:8px;">* 本页演示为前端模板与规则引擎示例，非真实模型输出。</p>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+        <span class="price-badge">🧾 AI立案文书：<b>¥9.9/份</b>（含生成与指导标注）</span>
+        <span class="price-badge">🧼 AI脱敏：<b>¥20</b> / 永久本地授权</span>
+        <span class="price-badge">🎁 其他功能：<b>限时免费</b></span>
+      </div>
+    </div>
+    <div class="grid cols-1">
+      <div class="card" style="height:100%">
+        <h3 style="margin:0 0 10px">📈 今日概览（Demo）</h3>
+        <div class="grid cols-2">
+          <div class="card" style="border-radius:12px">
+            <div class="muted">合同批量体检</div>
+            <div style="font-size:28px; font-weight:700">36 份</div>
+            <div class="muted">高风险：4 · 中风险：9 · 低风险：23</div>
+          </div>
+          <div class="card" style="border-radius:12px">
+            <div class="muted">法规推送已读率</div>
+            <div style="font-size:28px; font-weight:700">82%</div>
+            <div class="muted">近7日重点法规：PIPL/数据跨境/税务</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px;border-radius:12px">
+          <div class="muted">隐私与合规</div>
+          <ul style="margin:8px 0 0 18px; padding:0; line-height:1.6">
+            <li>本地/私有云部署，向量加密存储</li>
+            <li>可插拔模型：OpenAI、Azure、阿里通义、百度千帆、本地 vLLM/Ollama</li>
+            <li>敏感信息自动脱敏与访问审计日志</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tools" class="grid cols-3">
+    <!-- AI 立案 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🧾 AI 立案</h3>
+        <span class="pill">诉状/证据目录</span>
+        <span class="pill" title="含生成与指导标注">¥9.9/份</span>
+      </div>
+      <p>一键收集案情要点，自动结构化“请求事项—事实与理由—证据清单—法律依据”。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoRouting">打开演示</button>
+      </div>
+    </div>
+
+    <!-- AI 脱敏 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🧼 AI 脱敏</h3>
+        <span class="pill">姓名/地址/账号/证照</span>
+        <span class="pill" title="永久本地授权">¥20 / 永久</span>
+      </div>
+      <p>支持正则+规则+LLM 组合脱敏；自定义保留字段与审计追踪。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoMask">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 工商文书 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🏢 AI 工商文书生成</h3>
+        <span class="pill">章程/决议/变更</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>依据不同地区登记口径，智能生成公司设立/变更所需表单与文本。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoCorp">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 合同风控 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🛡️ 合同风险分析</h3>
+        <span class="pill">条款体检</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>识别“违约责任、赔偿限额、不可抗力、知识产权、数据合规”等高频风险。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoContract">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 商务邮件 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>✉️ AI 商务邮件起草</h3>
+        <span class="pill">多语/多语气</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>根据输入要点与收件人身份生成正式/半正式/友好三档邮件草稿。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoMail">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 新法规推送 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>📜 智能新法规推送</h3>
+        <span class="pill">行业定制</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>聚合公开来源，基于画像定向推送；摘要、要点、影响与行动建议。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoReg">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 定制化咨询 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🤝 定制化咨询</h3>
+        <span class="pill">私有知识库</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>绑定企业内部制度、历史合同与诉讼文书，建立专属法律知识图谱。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoConsult">打开演示</button>
+      </div>
+    </div>
+
+    <!-- 集成功能 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🔗 集成与部署</h3>
+        <span class="pill">API / SSO / 日志</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>支持单点登录、权限分级、全链路留痕与审计；可选本地与私有云部署。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoIntegr">查看说明</button>
+      </div>
+    </div>
+
+    <!-- 合规与安全 -->
+    <div class="tool card">
+      <div class="tool-head">
+        <h3>🧩 合规与安全</h3>
+        <span class="pill">隐私优先</span>
+        <span class="pill" title="限时免费">限时免费</span>
+      </div>
+      <p>可配置数据不出域、加密向量检索、可删除权/留存策略与模型隔离。</p>
+      <div class="actions">
+        <button class="btn" data-open="demoPrivacy">查看说明</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="card" style="margin-top:20px">
+    <h3 style="margin:0 0 8px">计费与部署（示例）</h3>
+    <div class="grid cols-3">
+      <div class="card">
+        <h4 style="margin:0 0 6px">功能计费（透明）</h4>
+        <ul style="line-height:1.9; margin:8px 0">
+          <li>🧾 AI立案文书生成 + 指导标注：<b>¥9.9/份</b></li>
+          <li>🧼 AI脱敏（本地授权）：<b>¥20/永久</b></li>
+          <li>其余模块：<b>限时免费</b></li>
+        </ul>
+        <div class="muted">* 价格为演示口径，实际以签署方案为准。</div>
+      </div>
+      <div class="card" style="border:1px solid #2e3c56">
+        <h4 style="margin:0 0 6px">专业版 · 私有化</h4>
+        <div class="muted">适合中大型机构规模化应用</div>
+        <ul style="line-height:1.8">
+          <li>全部模块 + 知识库私有化</li>
+          <li>SSO/权限分级/审计报表</li>
+          <li>私有云/本地化部署（K8s/Compose）</li>
+        </ul>
+        <button class="btn btn-primary" data-open="demoContact">预约演示</button>
+      </div>
+      <div class="card">
+        <h4 style="margin:0 0 6px">合规与安全</h4>
+        <ul style="line-height:1.8">
+          <li>数据不出域、向量加密、留痕可审计</li>
+          <li>模型路由与提示治理、输出过滤</li>
+          <li>PIPL/GDPR 等法规策略模板</li>
+        </ul>
+        <button class="btn btn-primary" data-open="demoPrivacy">查看说明</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="card" style="margin-top:20px">
+    <h3 style="margin:0 0 8px">联系我们</h3>
+    <div class="row">
+      <div>
+        <label>机构/公司名称</label>
+        <input id="org" placeholder="如：" />
+      </div>
+      <div>
+        <label>联系人邮箱</label>
+        <input id="email" placeholder="you@company.com" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>希望部署方式</label>
+        <select id="deploy">
+          <option>云端托管</option>
+          <option>私有云</option>
+          <option>本地化（内网）</option>
+          <option>尚未确定</option>
+        </select>
+      </div>
+      <div>
+        <label>关注模块</label>
+        <select id="interest">
+          <option>合同风控 + 脱敏</option>
+          <option>法规推送 + 工商文书</option>
+          <option>立案/争议解决</option>
+          <option>邮件写作 + 多语言</option>
+          <option>全模块 + 定制化咨询</option>
+        </select>
+      </div>
+    </div>
+    <label>补充需求（选填）</label>
+    <textarea id="more" placeholder="例如：希望对接 Notion / SharePoint / 本地知识库；跨境数据合规等"></textarea>
+    <div style="display:flex; gap:10px; margin-top:10px">
+      <button class="btn btn-primary" id="submitContact">提交需求</button>
+      <span class="muted" id="contactMsg"></span>
+    </div>
+  </section>
+
+  <section class="footer">
+    <div class="grid cols-2">
+      <div>© <span id="year"></span> LexFlow · 法律AI工具集 — 隐私优先 · 合规可控</div>
+      <div style="text-align:right">演示页面 · 不收集任何真实数据</div>
+    </div>
+  </section>
+</main>
+
+<!-- ===================== Modals / Demos ===================== -->
+<!-- AI 立案 -->
+<div class="modal" id="demoRouting">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close aria-label="关闭">✕</button>
+    <h3>🧾 AI 立案（Demo） <span class="pill">¥9.9/份 · 含指导标注</span></h3>
+    <div class="row">
+      <div>
+        <label>案件类型</label>
+        <select id="routeType">
+          <option>买卖合同纠纷</option>
+          <option>劳动争议</option>
+          <option>侵权责任纠纷</option>
+          <option>知识产权纠纷</option>
+        </select>
+      </div>
+      <div>
+        <label>标的额（元）</label>
+        <input id="routeAmount" type="number" placeholder="例如：500000" />
+      </div>
+    </div>
+    <label>案情要点</label>
+    <textarea id="routeFacts" placeholder="请简述合同签订、履行、违约及证据情况…"></textarea>
+    <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap">
+      <button class="btn btn-primary" id="genRouting">生成起诉状结构</button>
+      <button class="btn" id="genEvidence">生成证据目录</button>
+    </div>
+    <pre id="routeOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- AI 脱敏 -->
+<div class="modal" id="demoMask">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🧼 文本脱敏（Demo） <span class="pill">¥20 / 永久本地授权</span></h3>
+    <label>输入文本</label>
+    <textarea id="maskIn" placeholder="粘贴需要脱敏的文本（姓名、手机号、身份证号、地址等）"></textarea>
+    <div class="row">
+      <div><label><input type="checkbox" id="maskKeepInit"> 保留姓名首字母</label></div>
+      <div><label><input type="checkbox" id="maskHashIDs" checked> 证照号哈希化</label></div>
+    </div>
+    <button class="btn btn-primary" id="doMask">一键脱敏</button>
+    <pre id="maskOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 工商文书 -->
+<div class="modal" id="demoCorp">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🏢 工商文书生成（Demo） <span class="pill">限时免费</span></h3>
+    <div class="row">
+      <div>
+        <label>文书类型</label>
+        <select id="corpType">
+          <option>公司设立—股东会决议</option>
+          <option>公司变更—董事/监事变更</option>
+          <option>公司变更—名称/住所变更</option>
+          <option>章程修正案</option>
+        </select>
+      </div>
+      <div>
+        <label>登记辖区</label>
+        <select id="corpRegion">
+          <option>上海</option>
+          <option>北京</option>
+          <option>深圳</option>
+          <option>杭州</option>
+        </select>
+      </div>
+    </div>
+    <label>关键信息</label>
+    <textarea id="corpMeta" placeholder="公司名称、统一社会信用代码、变更事项、股权结构等"></textarea>
+    <button class="btn btn-primary" id="genCorp">生成文书草稿</button>
+    <pre id="corpOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 合同风险分析 -->
+<div class="modal" id="demoContract">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🛡️ 合同条款风险分析（Demo） <span class="pill">限时免费</span></h3>
+    <label>粘贴合同条款或全文片段</label>
+    <textarea id="clauseIn" placeholder="例如：违约责任、赔偿限额、不可抗力、数据出境、争议解决等条款"></textarea>
+    <div class="row">
+      <div>
+        <label>侧重点</label>
+        <select id="riskFocus">
+          <option>综合体检</option>
+          <option>赔偿限额 & 违约金</option>
+          <option>数据合规 & 隐私</option>
+          <option>知识产权 & 保密</option>
+        </select>
+      </div>
+      <div>
+        <label>立场</label>
+        <select id="riskSide">
+          <option>中立</option>
+          <option>更偏甲方</option>
+          <option>更偏乙方</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="analyzeClause">运行体检</button>
+    <pre id="clauseOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 商务邮件 -->
+<div class="modal" id="demoMail">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>✉️ 商务邮件起草（Demo） <span class="pill">限时免费</span></h3>
+    <div class="row">
+      <div>
+        <label>语气</label>
+        <select id="mailTone">
+          <option>正式</option>
+          <option>专业且友好</option>
+          <option>简洁直接</option>
+          <option>道歉/缓和</option>
+        </select>
+      </div>
+      <div>
+        <label>语言</label>
+        <select id="mailLang">
+          <option>中文</option>
+          <option>英文</option>
+          <option>中英双语</option>
+        </select>
+      </div>
+    </div>
+    <label>要点（用分号分隔）</label>
+    <textarea id="mailBullets" placeholder="如：感谢报价；客户希望明天前收到；可先从小范围开始；如需讨论可电话沟通"></textarea>
+    <button class="btn btn-primary" id="genMail">生成草稿</button>
+    <pre id="mailOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 法规推送 -->
+<div class="modal" id="demoReg">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>📜 智能新法规推送（偏好配置 · Demo） <span class="pill">限时免费</span></h3>
+    <div class="row">
+      <div>
+        <label>行业</label>
+        <select id="regIndustry">
+          <option>金融/银行</option>
+          <option>制造/汽车</option>
+          <option>互联网/平台</option>
+          <option>能源/电力</option>
+        </select>
+      </div>
+      <div>
+        <label>主题</label>
+        <select id="regTopic">
+          <option>数据出境 & 隐私</option>
+          <option>反垄断 & 反不正当竞争</option>
+          <option>劳动用工</option>
+          <option>税务合规</option>
+        </select>
+      </div>
+    </div>
+    <label>关注辖区（逗号分隔）</label>
+    <input id="regRegions" placeholder="示例：中国大陆, 香港, 澳大利亚, 欧盟" />
+    <button class="btn btn-primary" id="genReg">生成今日推送（示例）</button>
+    <pre id="regOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 定制咨询 -->
+<div class="modal" id="demoConsult">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🤝 定制化咨询（需求梳理 · Demo） <span class="pill">限时免费</span></h3>
+    <label>描述你的业务场景与目标</label>
+    <textarea id="consultIn" placeholder="如：跨境KD件供应+本地组装，需合同审核、法规对照、流程化审批与审计看板…"></textarea>
+    <button class="btn btn-primary" id="genConsult">生成实施蓝图（示例）</button>
+    <pre id="consultOut" class="card mono" style="white-space:pre-wrap; margin-top:12px"></pre>
+  </div>
+</div>
+
+<!-- 集成 -->
+<div class="modal" id="demoIntegr">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🔗 集成与部署说明（摘要） <span class="pill">限时免费</span></h3>
+    <pre class="card mono" style="white-space:pre-wrap">
+• 身份与权限：OIDC/SAML（SSO）、RBAC 角色、细粒度资源令牌
+• 数据与存储：对象存储 + 向量库（可加密），审计日志与可回溯版本
+• 模型抽象层：OpenAI/Azure/通义/千帆/vLLM/Ollama 可切换与路由
+• 集成：Outlook/Exchange、Notion/Confluence、SharePoint、iManage、企业微信/飞书
+• 部署：云托管/私有云/本地化（K8s 或 Docker Compose），支持离线局域网
+• 合规：数据不出域、留存策略、可删除权、敏感词/敏感实体策略中心
+    </pre>
+  </div>
+</div>
+
+<!-- 合规 -->
+<div class="modal" id="demoPrivacy">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>🧩 隐私与合规（摘要） <span class="pill">限时免费</span></h3>
+    <pre class="card mono" style="white-space:pre-wrap">
+• 隐私优先：默认不落盘原文，可选本地临时缓存与自动清理
+• 访问控制：操作审计、下载拦截、外发水印与签审流程
+• 模型安全：脱敏前置、提示注入防护、输出过滤、越权检测
+• 法规映射：PIPL/GDPR/CCPA/网络安全法/数据出境办法 等策略模板
+    </pre>
+  </div>
+</div>
+
+<!-- 通用联系 -->
+<div class="modal" id="demoContact">
+  <div class="modal-layer" data-close></div>
+  <div class="modal-card card">
+    <button class="close-x" data-close>✕</button>
+    <h3>📞 预约演示</h3>
+    <p class="muted">留下邮箱与机构信息，我们将发送演示与对接指引（示例表单，不会提交）</p>
+    <div class="row">
+      <div><label>邮箱</label><input id="mEmail" placeholder="you@company.com"></div>
+      <div><label>机构</label><input id="mOrg" placeholder="公司/律所名称"></div>
+    </div>
+    <button class="btn btn-primary" id="mSend">获取演示资料</button>
+    <span id="mMsg" class="muted" style="margin-left:10px"></span>
+  </div>
+</div>
+
+<script>
+  // ===== Theme toggle (dark/light) =====
+  const root = document.documentElement;
+  const initialTheme = localStorage.getItem('lexflow-theme') || 'light'; // 默认浅色
+  root.setAttribute('data-theme', initialTheme);
+  const setToggleText = () => {
+    const nextIs = root.getAttribute('data-theme') === 'light' ? '深色' : '浅色';
+    const btn = document.getElementById('toggleThemeBtn');
+    if(btn) btn.textContent = nextIs;
+  };
+  setToggleText();
+  document.getElementById('toggleThemeBtn').addEventListener('click', ()=>{
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('lexflow-theme', next);
+    setToggleText();
+  });
+
+  // ===== Utils =====
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const year = new Date().getFullYear(); $('#year').textContent = year;
+
+  // modal open/close
+  $$('[data-open]').forEach(btn=>{
+    btn.addEventListener('click', ()=> { const id=btn.getAttribute('data-open'); $('#'+id).classList.add('open'); });
+  });
+  $$('[data-close]').forEach(el=>{
+    el.addEventListener('click', ()=> el.closest('.modal').classList.remove('open'));
+  });
+
+  // 联系表单（示例）
+  $('#submitContact').addEventListener('click', ()=>{
+    const org=$('#org').value.trim(), email=$('#email').value.trim();
+    const ok = org && email && email.includes('@');
+    $('#contactMsg').textContent = ok ? '已记录（示例）：我们会尽快与你联系。' : '请填写机构与有效邮箱。';
+  });
+  $('#mSend').addEventListener('click', ()=>{
+    const ok = $('#mEmail').value.includes('@') && $('#mOrg').value.trim();
+    $('#mMsg').textContent = ok ? '演示资料已发送（示例）。' : '请填写邮箱与机构。';
+  });
+
+  // ========== Demo: AI 立案 ==========
+  $('#genRouting').addEventListener('click', ()=>{
+    const type=$('#routeType').value, amt=$('#routeAmount').value||'—', facts=$('#routeFacts').value||'（待补充案情要点）';
+    const out = `【起诉状结构建议】
+一、当事人信息：原告/被告/统一社会信用代码/住址/联系方式
+二、诉讼请求：
+  1. 判令被告支付款项人民币 ${amt} 元及利息/违约金；
+  2. 诉讼费用由被告承担。
+三、事实与理由（摘要）：
+  · 案件类型：${type}
+  · 关键事实：${facts}
+  · 主要证据：合同、发票/对账单、对话记录、收发货凭证等
+四、法律依据（示例）：
+  · 《民法典》合同编、买卖合同/服务合同相关规定
+  · 最高法相关审理规定（依案由细化）
+五、证据目录与来源说明（见附表）
+【温馨提示】请补全签约主体、金额计算口径、逾期利率/违约金约定、送达地址确认等要素。`;
+    $('#routeOut').textContent=out;
+  });
+  $('#genEvidence').addEventListener('click', ()=>{
+    $('#routeOut').textContent = `【证据目录（示例）】
+1. 合同文本（含补充协议/订单）——证明双方权利义务基础；
+2. 发票、对账单、银行流水——证明价款支付与欠付事实；
+3. 交付/验收记录、邮件/IM 往来——证明履约过程与违约事实；
+4. 催告函/律师函及回执——证明已履行催告义务与对方态度；
+5. 其他辅助材料（如公证、鉴定）——按需增补。`;
+  });
+
+  // ========== Demo: 脱敏 ==========
+  function hashID(s){ // 简单哈希示意
+    let h=0; for (let i=0;i<s.length;i++){ h = (h<<5)-h + s.charCodeAt(i); h|=0; }
+    return Math.abs(h).toString(16).slice(0,8);
+  }
+  $('#doMask').addEventListener('click', ()=>{
+    const keepInit = $('#maskKeepInit').checked;
+    const hashIDs = $('#maskHashIDs').checked;
+    let txt = $('#maskIn').value || '';
+    // 手机号
+    txt = txt.replace(/(\+?86[- ]?)?1[3-9]\d{9}/g, m => m.slice(0,3)+'****'+m.slice(-4));
+    // 身份证/证照号（非常粗略）
+    txt = txt.replace(/\b(\d{15,18}[0-9Xx])\b/g, m => hashIDs? `[ID#${hashID(m)}]` : m.replace(/\d(?=\d{4})/g,'*'));
+    // 邮箱
+    txt = txt.replace(/\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/g, (_,a,dom)=> `${a}***@${dom}`);
+    // 姓名（演示：以两个或三个汉字为人名，极简示例）
+    if(keepInit){
+      txt = txt.replace(/([^\x00-\x7F])([^\x00-\x7F]{1,2})(?=[^(\w]|$)/g, (_,a,b)=> `${a}**`);
+    }else{
+      txt = txt.replace(/([^\x00-\x7F]{2,3})(?=[^(\w]|$)/g, ()=> '某某');
+    }
+    // 地址（极简：匹配“市…区…路/街…号”）
+    txt = txt.replace(/([\u4e00-\u9fa5]{2,}市[\u4e00-\u9fa5]{1,}区.*?(路|街).*?号)/g, '[地址已脱敏]');
+    $('#maskOut').textContent = txt || '（结果为空）';
+  });
+
+  // ========== Demo: 工商文书 ==========
+  $('#genCorp').addEventListener('click', ()=>{
+    const t=$('#corpType').value, r=$('#corpRegion').value, meta=$('#corpMeta').value||'（待补充）';
+    const out = `【${r}·${t}（草稿示例）】
+一、基本信息：${meta}
+二、决议/修正事项：
+  1. ……（按辖区登记口径生成字段）
+三、授权与生效：
+  1. 授权法定代表人/经办人办理相关手续；
+  2. 文件自签署之日起生效。
+附：签字页/股东签署清单/章程修正条款对照表`;
+    $('#corpOut').textContent = out;
+  });
+
+  // ========== Demo: 合同风险 ==========
+  const rules = [
+    {key:'赔偿限额', re:/赔偿(责任|额度|限额)|liability\s+cap/i, msg:'发现“赔偿限额/责任上限”，请关注是否与业务风险匹配、是否排除人身/故意/重大过失。', level:'中'},
+    {key:'违约金', re:/违约金|liquidated\s+damages/i, msg:'存在违约金条款，请校对计算口径、上限、与实际损失关系。', level:'中'},
+    {key:'不可抗力', re:/不可抗力|force\s+majeure/i, msg:'不可抗力范围与通知义务需明确，是否包含政府管制/网络中断等。', level:'低'},
+    {key:'数据出境', re:/数据出境|跨境传输|cross[-\s]?border\s+data/i, msg:'涉及数据跨境/个人信息处理，请对照PIPL等合规要求与评估路径。', level:'高'},
+    {key:'争议解决', re:/争议解决|仲裁|法院|arbitration|jurisdiction/i, msg:'争议解决方式、仲裁地/法院管辖、法律适用需与交易安排一致。', level:'中'},
+    {key:'知识产权', re:/知识产权|IP\s+ownership|license/i, msg:'成果归属/许可范围/侵权责任需明确。', level:'中'},
+  ];
+  $('#analyzeClause').addEventListener('click', ()=>{
+    const txt=$('#clauseIn').value || '';
+    const focus=$('#riskFocus').value, side=$('#riskSide').value;
+    let hits=[];
+    rules.forEach(r=>{ if(r.re.test(txt)) hits.push(r); });
+    const res = `【体检结果（演示规则引擎）】
+侧重点：${focus} · 立场：${side}
+命中风险点：${hits.length} 项
+${hits.map((h,i)=>`${i+1}. [${h.level}] ${h.key} —— ${h.msg}`).join('\n') || '未命中预设关键字（仅示意）。'}
+
+【建议（示例）】
+- 通用：补充术语定义、履约里程碑、变更流程与证据规则；
+- 风险：为“赔偿限额”设置合理 carve-out；数据跨境条款补充合法性路径；
+- 争议：与业务区域匹配的仲裁地/法院；明确送达地址与电子送达规则。`;
+    $('#clauseOut').textContent = res;
+  });
+
+  // ========== Demo: 邮件起草 ==========
+  function mailTemplate(lang, tone, bullets){
+    const pts = bullets.split(/[;；]\s*/).filter(Boolean);
+    const cn = (title)=>`主题：${title}\n\n尊敬的先生/女士，\n\n${pts.map((p,i)=>`${i+1}）${p}`).join('\n')}\n\n如需进一步沟通，欢迎随时联系，我们也可安排电话/视频会议。\n\n此致\n敬礼\n`;
+    const en = (title)=>`Subject: ${title}\n\nDear Sir/Madam,\n\n${pts.map(p=>`• ${p}`).join('\n')}\n\nPlease let me know if a quick call would help—happy to arrange.\n\nBest regards,\n`;
+    const title = tone==='道歉/缓和' ? 'Apology and Next Steps / 抱歉与后续安排' :
+                  tone==='简洁直接' ? 'Follow-up and Next Steps / 事项跟进' :
+                  tone==='专业且友好' ? 'Appreciation and Next Steps / 致谢与后续' :
+                  'Proposal Update / 方案进展';
+    if(lang==='中文') return cn(title);
+    if(lang==='英文') return en(title);
+    return cn(title)+'\n---\n\n'+en(title);
+  }
+  $('#genMail').addEventListener('click', ()=>{
+    const tone=$('#mailTone').value, lang=$('#mailLang').value, bullets=$('#mailBullets').value||'';
+    $('#mailOut').textContent = mailTemplate(lang,tone,bullets);
+  });
+
+  // ========== Demo: 法规推送 ==========
+  $('#genReg').addEventListener('click', ()=>{
+    const ind=$('#regIndustry').value, topic=$('#regTopic').value, regs=$('#regRegions').value || '中国大陆';
+    const out = `【今日推送（示例）】
+行业：${ind} · 主题：${topic} · 关注辖区：${regs}
+
+1) 法规动向速览
+- 《个人信息出境标准合同》配套问答（修订稿要点速览）
+- 某地数据分类分级指南（新增对工业数据的口径）
+- 税务：跨境服务交易增值税征管口径更新（征收与抵扣要点）
+
+2) 影响评估（要点）
+- 对供应链数据流转与海外共享影响显著，需梳理数据出境场景；
+- 建议更新供应商评估清单与标准合同附件，补充最小必要原则。
+
+3) 建议行动
+- 2周内完成跨境数据盘点与合法性路径选择（评估/认证/合同）；
+- 更新员工/客户告知与同意模板；开展归档与留痕。`;
+    $('#regOut').textContent = out;
+  });
+
+  // ========== Demo: 定制化咨询 ==========
+  $('#genConsult').addEventListener('click', ()=>{
+    const t = ($('#consultIn').value || '（待补充）').slice(0,600);
+    const out = `【实施蓝图（概览 · 示例）】
+一、业务目标与范围
+- 场景：${t}
+- 目标：以“合同风控 + 法规推送 + 知识库问答”为核心，沉淀专属规则。
+
+二、技术方案
+- 私有化部署：K8s/Compose；存储隔离与加密向量库
+- 模型路由：外部商用模型 + 本地 vLLM/Ollama；提示治理与输出过滤
+- 对接：Exchange/Outlook、SharePoint、Notion、iManage
+
+三、合规与安全
+- 数据不出域；细粒度权限；操作审计；可删除权与留存策略
+
+四、里程碑（6~8周）
+- W1-2：需求访谈、规则编写、数据治理
+- W3-4：集成/单点登录、知识库构建、灰度测试
+- W5-6：安全/合规评估、性能压测、用户培训
+- W7-8：试运行与优化、验收与移交`;
+    $('#consultOut').textContent = out;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>AI立案助手（深蓝版） · v4 Demo</title>
+<style>
+:root{
+  --brand:#0b3d91;       /* 深蓝主色 */
+  --brand-2:#3b82f6;     /* 浅蓝高亮 */
+  --bg:#f5f7fb;
+  --text:#0f172a;
+  --muted:#5b6575;
+  --card:#ffffff;
+  --border:#e3e8ef;
+  --shadow:0 6px 20px rgba(11,61,145,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);}
+.container{max-width:720px;margin:0 auto;padding:16px;}
+header{text-align:center;padding:28px 16px 10px;}
+header h1{font-size:22px;color:var(--brand);letter-spacing:0.5px;}
+header p{color:var(--muted);font-size:14px;margin-top:4px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;margin-top:14px;box-shadow:var(--shadow);}
+.hide{display:none;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 18px;border-radius:16px;font-weight:700;border:none;cursor:pointer;transition:.18s background,.18s transform,font-size .18s;font-size:16px;}
+.btn:active{transform:scale(.98);}
+.btn.primary{background:var(--brand);color:#fff;}
+.btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand);}
+.btn.ghost{background:transparent;color:var(--brand);}
+.btn.block{width:100%;}
+.nav-row{display:flex;justify-content:space-between;gap:8px;margin-top:12px;}
+.nav-row .left{flex:1;}
+.nav-row .right{flex:1;text-align:right;}
+.input,textarea,select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;margin-top:10px;font-size:15px;background:#fff;}
+textarea{min-height:120px;}
+.section-title{font-size:18px;font-weight:800;margin-bottom:10px;color:#0d1b2a;}
+.tip{font-size:13px;color:var(--muted);margin-top:6px;}
+.numbered{counter-reset:item;margin-left:0;list-style:none;}
+.numbered li{counter-increment:item;margin:10px 0 10px 0;position:relative;padding-left:36px;font-size:14px;line-height:1.6;color:var(--text);}
+.numbered li::before{content:counter(item) ".";position:absolute;left:0;top:0;color:#fff;background:var(--brand);width:26px;height:26px;display:grid;place-items:center;border-radius:8px;font-weight:800;}
+.voice-btn{width:100%;padding:22px;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;font-weight:800;border:none;border-radius:18px;font-size:18px;position:relative;box-shadow:0 8px 18px rgba(11,61,145,0.2);}
+.voice-btn::after{content:"";position:absolute;inset:-2px;border-radius:20px;padding:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:borderflow 3s linear infinite;}
+@keyframes borderflow{0%{transform:translateX(-20%)}100%{transform:translateX(20%)}}
+.item-list{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px;}
+.item{border:1px dashed var(--border);border-radius:12px;padding:12px;background:#fff;}
+.item .title{font-weight:700;margin-bottom:6px;}
+.file-list{font-size:13px;color:var(--muted);margin-top:6px;}
+.preview-area{background:#f1f5fb;border:1px solid var(--border);border-radius:12px;padding:12px;white-space:pre-wrap;font-size:13px;}
+.preview-area[contenteditable="true"]{outline:none;}
+.fee-box{margin-top:12px;padding:12px;border:1px solid var(--border);background:#f8fbff;border-radius:12px;}
+.fee-box b{color:#0d9488;}
+.carousel{position:relative;margin-top:10px;}
+.track{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x mandatory;padding-bottom:6px;}
+.slide{flex:0 0 90%;scroll-snap-align:center;background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 4px 12px rgba(0,0,0,.05);min-height:360px;display:flex;flex-direction:column;}
+.slide h4{margin:10px 0 8px;color:var(--brand);}
+.placeholder{background:#eef2ff;border:1px dashed #c7d2fe;border-radius:12px;height:180px;display:grid;place-items:center;color:#475569;font-size:14px;}
+.placeholder span{font-size:22px;margin-right:6px;}
+.slide p{font-size:14.5px;line-height:1.7;margin-top:8px;}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+.dot{width:8px;height:8px;border-radius:999px;background:#c9d4ff;}
+.dot.active{background:var(--brand);}
+.fab{position:fixed;right:16px;bottom:18px;width:56px;height:56px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:24px;box-shadow:0 10px 24px rgba(11,61,145,0.3);z-index:50;cursor:pointer;}
+.fab::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 rgba(11,61,145,0.25);animation:pulse 2.2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(11,61,145,0.25)}70%{box-shadow:0 0 0 16px rgba(11,61,145,0)}100%{box-shadow:0 0 0 0 rgba(11,61,145,0)}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 14px;border-radius:999px;opacity:0;transition:.3s;z-index:60;}
+.toast.show{opacity:1;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:70;}
+.modal .dialog{background:#fff;border-radius:16px;padding:18px;max-width:88%;box-shadow:var(--shadow);}
+.modal .dialog h4{margin-bottom:6px;}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
+.stepbar{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin-bottom:10px;}
+.stepdot{width:8px;height:8px;border-radius:999px;background:#cdd5e1;}
+.stepdot.active{background:var(--brand);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI立案助手（深蓝版）</h1>
+  <p>让立案文书生成与指导更简单</p>
+</header>
+
+<main class="container">
+
+  <!-- 欢迎 -->
+  <section id="welcome" class="card">
+    <div class="stepbar"><span class="stepdot active"></span><span>欢迎页</span></div>
+    <p style="font-size:15px;">AI自动生成起诉状、证据目录与立案指导，适配手机端，流程清晰。</p>
+    <div class="nav-row">
+      <div class="left"></div>
+      <div class="right"><button class="btn primary" id="startBtn">开始立案指导 ➜</button></div>
+    </div>
+  </section>
+
+  <!-- 使用提示 -->
+  <section id="intro" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>使用提示</span></div>
+    <ol class="numbered">
+      <li>语音输入更快捷，也可手动输入。</li>
+      <li>自动识别案件类型并提示补充关键信息。</li>
+      <li>建议上传材料可缺省，稍后仍可补充。</li>
+      <li>生成后可直接修改文书，再进行支付与打印。</li>
+    </ol>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" id="introPrev">← 返回</button></div>
+      <div class="right"><button class="btn primary" id="goStep1">下一步 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step1 输入背景 -->
+  <section id="step1" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 1/7</span></div>
+    <h3 class="section-title">① 描述案件背景</h3>
+    <button class="voice-btn" id="voiceBtn">🎧 点击开始语音输入</button>
+    <textarea id="caseInput" placeholder="或在此输入案件背景：人物、时间、地点、金额、经过..."></textarea>
+    <p class="tip">示例：2024年6月在XX商场购买手机，5天后发现质量问题要求退货被拒，保留发票和聊天记录。</p>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="welcome">← 上一步</button></div>
+      <div class="right"><button class="btn primary" id="toStep2">下一步 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step2 补充信息 + 上传文件 -->
+  <section id="step2" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 2/7</span></div>
+    <h3 class="section-title">② 补充信息 & 上传材料</h3>
+    <div id="caseType" class="tip">识别类型：<b id="caseTypeLabel">待识别</b></div>
+    <input class="input" placeholder="原告姓名*" id="p_name" />
+    <input class="input" placeholder="被告（商家/对方）名称*" id="d_name" />
+    <input class="input" placeholder="涉案金额（元，可选）" id="amount" />
+    <div class="item-list">
+      <div class="item">
+        <div class="title">建议上传材料（可缺省）</div>
+        <div class="tip">🧾 发票/收据、💬 聊天记录截图、📄 合同/借条/承诺书等。</div>
+        <input type="file" multiple id="fileUpload" class="input" />
+        <div id="fileList" class="file-list"></div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="step1">← 上一步</button></div>
+      <div class="right"><button class="btn primary" id="toStep3">生成文书 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step3 生成并可编辑 + 诉讼费测算 -->
+  <section id="step3" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 3/7</span></div>
+    <h3 class="section-title">③ 生成并编辑文书</h3>
+    <p class="tip" id="loadingText">正在生成...</p>
+    <div id="docsArea" class="hide">
+      <div style="font-weight:800;margin:8px 0 6px 0;">【起诉状】</div>
+      <div id="petition" class="preview-area" contenteditable="true"></div>
+      <div style="font-weight:800;margin:16px 0 6px 0;">【证据目录】</div>
+      <div id="evidence" class="preview-area" contenteditable="true"></div>
+
+      <div class="fee-box" id="feeBox">
+        <div style="font-weight:800;margin-bottom:6px;">💰 诉讼费测算（示意）</div>
+        <div id="feeText" class="tip">根据填写的涉案金额自动估算（以法院最终核定为准）。</div>
+      </div>
+
+      <div class="nav-row">
+        <div class="left"><button class="btn secondary" data-prev="step2">← 上一步</button></div>
+        <div class="right"><button class="btn primary" id="toStep4">确认无误，去支付 →</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step4 支付 -->
+  <section id="step4" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 4/7</span></div>
+    <h3 class="section-title">④ 支付</h3>
+    <p style="margin-bottom:10px;">AI立案文书（起诉状 + 证据目录） <b>¥9.9</b></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn primary" id="mockPay">模拟支付成功</button>
+    </div>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="step3">← 上一步</button></div>
+      <div class="right"><button class="btn primary" id="toStep5">下一步 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step5 下载 / 云打印 -->
+  <section id="step5" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 5/7</span></div>
+    <h3 class="section-title">⑤ 下载 & 云打印</h3>
+    <div class="item-list">
+      <div class="item">
+        <div class="title">下载文书</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+          <button class="btn secondary" id="dlPetitionDoc">起诉状.DOC</button>
+          <button class="btn secondary" id="dlEvidenceDoc">证据目录.DOC</button>
+          <button class="btn ghost" id="dlPetitionTxt">起诉状.TXT</button>
+          <button class="btn ghost" id="dlEvidenceTxt">证据目录.TXT</button>
+        </div>
+      </div>
+      <div class="item">
+        <div class="title">云打印（可选）</div>
+        <input class="input" placeholder="收件人姓名" id="addrName" />
+        <input class="input" placeholder="手机号码" id="addrPhone" />
+        <input class="input" placeholder="收件地址" id="addrFull" />
+        <div style="margin-top:8px;text-align:right;">
+          <button class="btn secondary" id="submitPrint">提交打印（演示）</button>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="step4">← 上一步</button></div>
+      <div class="right"><button class="btn primary" id="toStep6">下一步：签署指导 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step6 签署指导（高卡片 + 图片占位） -->
+  <section id="step6" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 6/7</span></div>
+    <h3 class="section-title">⑥ 签署指导</h3>
+    <div class="carousel">
+      <div class="track" id="trackSign">
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>签名位置示意图（占位）</div>
+          <h4>步骤1：签名要求</h4>
+          <p>当事人逐页签名，使用黑色水笔或签字笔，避免铅笔/蓝色圆珠笔；若代签需附授权证明。</p>
+        </div>
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>骑缝章示意图（占位）</div>
+          <h4>步骤2：公司盖章</h4>
+          <p>公司主体需加盖与统一社会信用代码一致的公章；装订处可加骑缝章，确保完整性。</p>
+        </div>
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>修改处划线示意图（占位）</div>
+          <h4>步骤3：涂改确认</h4>
+          <p>如有修改，在修改处划线并由签名人签名确认，避免证据效力争议。</p>
+        </div>
+      </div>
+      <div class="dots" id="dotsSign"></div>
+    </div>
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="step5">← 上一步</button></div>
+      <div class="right"><button class="btn primary" id="toStep7">下一步：立案指导 →</button></div>
+    </div>
+  </section>
+
+  <!-- Step7 立案指导（高卡片 + 图片占位 + 完成立案按钮） -->
+  <section id="step7" class="card hide">
+    <div class="stepbar"><span class="stepdot active"></span><span>步骤 7/7</span></div>
+    <h3 class="section-title">⑦ 立案指导</h3>
+    <div class="carousel">
+      <div class="track" id="trackFile">
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>材料清单示意图（占位）</div>
+          <h4>准备材料</h4>
+          <p>打印的起诉状、证据目录、身份证复印件、证据复印件、当事人联系方式等。</p>
+        </div>
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>线上提交界面示意（占位）</div>
+          <h4>提交方式</h4>
+          <p>前往受理法院立案庭或通过“移动微法院”APP线上提交，按指引填写信息并上传材料。</p>
+        </div>
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>缴费二维码示例（占位）</div>
+          <h4>诉讼费缴纳</h4>
+          <p>按诉请金额由法院收取，通常支持电子缴费；保留缴费凭证以备查验。</p>
+        </div>
+        <div class="slide">
+          <div class="placeholder"><span>🖼️</span>受理通知示意（占位）</div>
+          <h4>受理通知</h4>
+          <p>等待受理结果；如需补充材料按通知完善。建议保留短信/APP通知截图。</p>
+        </div>
+      </div>
+      <div class="dots" id="dotsFile"></div>
+    </div>
+
+    <div class="nav-row">
+      <div class="left"><button class="btn secondary" data-prev="step6">← 上一步</button></div>
+      <div class="right">
+        <button class="btn primary" id="doneFiling">完成立案 ✅</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- 悬浮人工客服按钮（headset） -->
+<div class="fab" id="fab" title="人工客服">🎧</div>
+
+<!-- 简易客服弹窗 -->
+<div class="modal" id="supportModal">
+  <div class="dialog">
+    <h4>人工客服</h4>
+    <p style="font-size:14px;color:var(--muted);margin-top:6px;">我们已收到您的请求，稍后会有客服与您联系（演示）。</p>
+    <div class="actions">
+      <button class="btn secondary" id="closeSupport">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const toast=(msg)=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);};
+const show=(id)=>{['welcome','intro','step1','step2','step3','step4','step5','step6','step7'].forEach(s=>document.getElementById(s).classList.add('hide'));document.getElementById(id).classList.remove('hide');window.scrollTo({top:0,behavior:'smooth'});};
+
+// 欢迎 → 提示 → 步骤1
+document.getElementById('startBtn').onclick=()=>show('intro');
+document.getElementById('introPrev').onclick=()=>show('welcome');
+document.getElementById('goStep1').onclick=()=>show('step1');
+
+// 通用“上一步”按钮（data-prev属性）
+document.querySelectorAll('[data-prev]').forEach(btn=>{
+  btn.addEventListener('click',()=>show(btn.getAttribute('data-prev')));
+});
+
+// 语音输入
+let recognition;
+try{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR){recognition=new SR();recognition.lang='zh-CN';recognition.onresult=(e)=>{const t=Array.from(e.results).map(r=>r[0].transcript).join(' ');document.getElementById('caseInput').value+=(document.getElementById('caseInput').value?' ':'')+t;};}}catch(e){}
+document.getElementById('voiceBtn').onclick=()=>{if(!recognition){toast('浏览器不支持语音输入');return;}recognition.start();toast('开始录音…');};
+
+// 简易分类
+function classifyCase(text){
+  const t=text||'';
+  const has=(w)=>t.includes(w);
+  if(has('借')&&(has('欠')||has('还')||has('借条'))) return {label:'民间借贷纠纷'};
+  if(has('合同')||has('违约')||has('交付')||has('价款')) return {label:'合同纠纷'};
+  if(has('退货')||has('售后')||has('质量')||has('手机')||has('商家')) return {label:'消费者权益纠纷'};
+  if(has('劳动')||has('加班')||has('工资')||has('辞职')||has('社保')) return {label:'劳动争议'};
+  return {label:'一般民事纠纷'};
+}
+
+// Step1 → Step2
+document.getElementById('toStep2').onclick=()=>{
+  const text=document.getElementById('caseInput').value.trim();
+  if(!text){toast('请先输入或通过语音描述案件背景');return;}
+  const type=classifyCase(text);
+  document.getElementById('caseTypeLabel').textContent=type.label;
+  show('step2');
+};
+
+// 文件上传列表
+document.getElementById('fileUpload').addEventListener('change',()=>{
+  const list=Array.from(document.getElementById('fileUpload').files).map(f=>`${f.name} (${Math.round(f.size/1024)}KB)`).join('，');
+  document.getElementById('fileList').textContent=list?('已选择：'+list):'';
+});
+
+// 诉讼费测算（示意算法）
+function estimateFee(amount){
+  const a=Number(amount);
+  if(!isFinite(a)||a<=0) return '未填写金额，暂无法估算。';
+  // 简化示意：约 2.5%（最低¥50，向上取整），仅供演示
+  const fee=Math.max(50, Math.ceil(a*0.025));
+  return `预计诉讼费约 ¥${fee}（示意），具体以法院实际核定为准。`;
+}
+
+// Step2 → Step3（生成）
+document.getElementById('toStep3').onclick=()=>{
+  if(!document.getElementById('p_name').value.trim()||!document.getElementById('d_name').value.trim()){toast('请完善原告与被告名称');return;}
+  show('step3');
+  setTimeout(()=>{
+    document.getElementById('loadingText').classList.add('hide');
+    const petitioner=document.getElementById('p_name').value||'原告';
+    const defendant=document.getElementById('d_name').value||'被告';
+    const amount=document.getElementById('amount').value||'____';
+    const petition=`民  事  起  诉  状\n\n原告：${petitioner}\n被告：${defendant}\n\n一、基本事实\n原告与被告因消费行为产生纠纷，被告拒绝退货或退款。\n二、诉讼请求\n1. 退货并返还货款人民币 ${amount} 元；\n2. 赔偿检测费及合理维权支出；\n3. 诉讼费由被告承担。\n\n此致\n___人民法院\n\n具状人：${petitioner}\n日期：______年__月__日\n`;
+    const evidence=`证 据 目 录\n\n原告：${petitioner}\n被告：${defendant}\n\n1. 发票/小票复印件；\n2. 商品问题照片或检测报告；\n3. 与商家沟通记录（聊天/电话）；\n4. 其他与本案有关的证据。`;
+    document.getElementById('petition').textContent=petition;
+    document.getElementById('evidence').textContent=evidence;
+    document.getElementById('docsArea').classList.remove('hide');
+    // 诉讼费提示
+    document.getElementById('feeText').textContent=estimateFee(amount);
+  },700);
+};
+
+// Step3 → Step4
+document.getElementById('toStep4').onclick=()=>show('step4');
+
+// 支付
+document.getElementById('mockPay').onclick=()=>{toast('支付成功（演示）');};
+document.getElementById('toStep5').onclick=()=>show('step5');
+
+// 下载/打印
+function saveDoc(filename, content){
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><pre style="white-space:pre-wrap;font-family:SimSun,serif;">${content.replace(/[&<>"]/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[s]))}</pre></body></html>`;
+  const blob=new Blob([html],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+function saveTxt(filename, content){
+  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+document.getElementById('dlPetitionDoc').onclick=()=>saveDoc('起诉状.doc',document.getElementById('petition').innerText);
+document.getElementById('dlEvidenceDoc').onclick=()=>saveDoc('证据目录.doc',document.getElementById('evidence').innerText);
+document.getElementById('dlPetitionTxt').onclick=()=>saveTxt('起诉状.txt',document.getElementById('petition').innerText);
+document.getElementById('dlEvidenceTxt').onclick=()=>saveTxt('证据目录.txt',document.getElementById('evidence').innerText);
+document.getElementById('submitPrint').onclick=()=>{
+  const n=document.getElementById('addrName').value.trim();
+  const p=document.getElementById('addrPhone').value.trim();
+  const a=document.getElementById('addrFull').value.trim();
+  if(!n||!p||!a){toast('请填写姓名、手机和地址');return;}
+  toast('云打印已提交（演示）');
+};
+
+// Step5 → Step6 → Step7
+document.getElementById('toStep6').onclick=()=>show('step6');
+document.getElementById('toStep7').onclick=()=>show('step7');
+
+// 完成立案：提示后续程序
+document.getElementById('doneFiling').onclick=()=>{
+  toast('立案完成！后续：分案与送达 → 证据交换 → 庭前调解/排期 → 开庭审理 → 判决/调解书 → 执行。');
+};
+
+// 客服
+document.getElementById('fab').onclick=()=>{document.getElementById('supportModal').style.display='flex';};
+document.getElementById('closeSupport').onclick=()=>{document.getElementById('supportModal').style.display='none';};
+
+// 路书圆点指示器
+function initDots(trackId,dotsId){
+  const track=document.getElementById(trackId);
+  const dots=document.getElementById(dotsId);
+  const slides=track.querySelectorAll('.slide');
+  dots.innerHTML='';
+  slides.forEach((_,i)=>{const d=document.createElement('span');d.className='dot'+(i===0?' active':'');dots.appendChild(d);});
+  const dotEls=[...dots.querySelectorAll('.dot')];
+  track.addEventListener('scroll',()=>{
+    const idx=Math.round(track.scrollLeft/(track.scrollWidth/ slides.length));
+    dotEls.forEach((el,i)=>el.classList.toggle('active',i===idx));
+  });
+}
+initDots('trackSign','dotsSign');
+initDots('trackFile','dotsFile');
+</script>
+</body>
+</html>
