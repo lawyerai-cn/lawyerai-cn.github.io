@@ -2,109 +2,412 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voice to Notion Demo</title>
+  <title>Voice → Text → Notion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 1.5rem;
-      line-height: 1.6;
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-soft: rgba(37, 99, 235, 0.08);
+      --border: #e5e7eb;
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --radius-lg: 16px;
+      --radius-md: 8px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
-    h1 {
-      font-size: 1.4rem;
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #e0edff, #f5f5f7 44%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 1.75rem 1.75rem 1.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
       margin-bottom: 1rem;
     }
-    button {
-      margin: 0.25rem 0.25rem 0.25rem 0;
-      padding: 0.4rem 0.8rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      cursor: pointer;
+
+    .title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+
+    .subtitle {
+      font-size: 0.88rem;
+      color: var(--text-sub);
     }
-    #status {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      white-space: nowrap;
     }
-    #result {
+
+    .section {
       margin-top: 1rem;
-      padding: 0.75rem;
-      border-radius: 4px;
-      border: 1px solid #eee;
-      min-height: 4rem;
-      background: #fafafa;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .section:first-of-type {
+      border-top: none;
+      padding-top: 0.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .section-desc {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 0.5rem;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    button {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.9rem;
+      font-size: 0.88rem;
+      background: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+
+    button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    button.primary:hover:not(:disabled) {
+      filter: brightness(1.05);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #f9fafb;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      min-height: 1.2rem;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.35rem;
+      background: #9ca3af;
+    }
+
+    .status-dot.live {
+      background: #ef4444;
+      box-shadow: 0 0 0 6px rgba(248, 113, 113, 0.3);
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 0.4rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: #f9fafb;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      background: #f3f4f6;
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    .result-box {
+      margin-top: 0.4rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      font-size: 0.86rem;
+      min-height: 3rem;
       white-space: pre-wrap;
     }
+
     textarea {
       width: 100%;
-      min-height: 6rem;
-      margin-top: 0.5rem;
-      padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
+      min-height: 5rem;
+      margin-top: 0.4rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 0.86rem;
+      resize: vertical;
+      background: #fdfdfd;
     }
-    .section-title {
-      margin-top: 1.5rem;
-      font-weight: 600;
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+    }
+
+    .footer {
+      margin-top: 0.7rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-sub);
+    }
+
+    .footer-right {
+      text-align: right;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    .log {
+      margin-top: 0.4rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow: auto;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 1.25rem 1.2rem 1.1rem;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .footer-right {
+        text-align: left;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Voice → Text → Notion</h1>
+  <div class="card">
+    <div class="header">
+      <div>
+        <div class="title">Voice Notes → Notion</div>
+        <div class="subtitle">Record once, transcribe with your Flask API, then save to Notion.</div>
+      </div>
+      <div class="tag">Local Flask · Notion API</div>
+    </div>
 
-  <!-- 录音控制 -->
-  <div>
-    <button id="btnStart">Start Recording</button>
-    <button id="btnStop" disabled>Stop Recording</button>
-    <span id="status"></span>
-  </div>
+    <!-- Step 1: 录音 & 播放 -->
+    <div class="section">
+      <div class="section-title">1. Record</div>
+      <div class="section-desc">Use your microphone to record a voice memo. The audio stays in your browser until you choose to send it.</div>
 
-  <!-- 本地音频播放 -->
-  <div class="section-title">Recorded Audio</div>
-  <audio id="audioPlayer" controls style="width:100%;"></audio>
+      <div class="controls-row">
+        <button id="btnStart" class="primary">
+          ⏺ Start recording
+        </button>
+        <button id="btnStop" class="secondary" disabled>
+          ⏹ Stop
+        </button>
+        <div class="status">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusText"></span>
+        </div>
+      </div>
 
-  <!-- 转写结果显示 / 编辑 -->
-  <div class="section-title">Transcription</div>
-  <div id="result">(transcription will appear here)</div>
+      <audio id="audioPlayer" controls></audio>
+      <div class="pill" style="margin-top:0.3rem;">
+        <span class="pill-dot"></span>
+        <span>Audio is kept locally until sent to your API.</span>
+      </div>
+    </div>
 
-  <div class="section-title">Transcription (editable before saving to Notion)</div>
-  <textarea id="textToSave" placeholder="You can edit the transcription here before saving to Notion."></textarea>
+    <!-- Step 2: 语音转文字 -->
+    <div class="section">
+      <div class="section-title">2. Transcribe via Flask API</div>
+      <div class="section-desc">
+        Sends the recorded audio file to your local Flask endpoint
+        <code style="font-size:0.8rem;">/asr</code> and expects JSON like:
+        <code style="font-size:0.8rem;">{"text": "..."}</code>.
+      </div>
 
-  <!-- 操作按钮 -->
-  <div style="margin-top: 0.5rem;">
-    <button id="btnTranscribe" disabled>Send Audio to ASR</button>
-    <button id="btnSaveNotion" disabled>Save Text to Notion</button>
+      <div class="controls-row">
+        <button id="btnTranscribe" class="primary" disabled>
+          ✨ Transcribe audio
+        </button>
+        <span id="asrStatus" class="status"></span>
+      </div>
+
+      <div class="result-box" id="resultText">(Transcription will appear here)</div>
+    </div>
+
+    <!-- Step 3: 保存到 Notion -->
+    <div class="section">
+      <div class="section-title">3. Review & Save to Notion</div>
+      <div class="section-desc">
+        You can edit the transcription below. When ready, it will be sent to
+        <code style="font-size:0.8rem;">/notion-save</code> on your Flask API, which calls the Notion API.
+      </div>
+
+      <textarea id="textToSave" placeholder="Edit your transcription here before saving to Notion."></textarea>
+
+      <div class="controls-row" style="margin-top:0.4rem;">
+        <button id="btnSaveNotion" class="primary" disabled>
+          📥 Save to Notion
+        </button>
+        <span id="notionStatus" class="status"></span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        <span class="badge">
+          <span class="badge-dot"></span>
+          <span>Local APIs only</span>
+        </span>
+      </div>
+      <div class="footer-right">
+        <div id="envInfo">API: <code>http://127.0.0.1:5000</code></div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
   </div>
 
   <script>
-    let mediaRecorder = null;
-    let chunks = [];
-    let currentBlob = null;
-    let currentAudioUrl = null;
+    // 如果需要改 API 地址，只改这里
+    const API_BASE = 'http://127.0.0.1:5000';
 
     const btnStart = document.getElementById('btnStart');
     const btnStop = document.getElementById('btnStop');
     const btnTranscribe = document.getElementById('btnTranscribe');
     const btnSaveNotion = document.getElementById('btnSaveNotion');
-    const statusEl = document.getElementById('status');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const resultEl = document.getElementById('result');
-    const textToSave = document.getElementById('textToSave');
 
-    // 更新状态文本
-    function setStatus(msg) {
-      statusEl.textContent = msg || '';
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+    const asrStatus = document.getElementById('asrStatus');
+    const notionStatus = document.getElementById('notionStatus');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const resultText = document.getElementById('resultText');
+    const textToSave = document.getElementById('textToSave');
+    const logEl = document.getElementById('log');
+    const envInfo = document.getElementById('envInfo');
+
+    envInfo.innerHTML = 'API: <code>' + API_BASE + '</code>';
+
+    let mediaRecorder = null;
+    let chunks = [];
+    let currentAudioUrl = null;
+    let currentBlob = null;
+
+    function log(msg) {
+      console.log(msg);
+      logEl.textContent += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
     }
 
-    // 清理旧的音频 URL，避免内存泄漏
+    function setStatus(text, live = false) {
+      statusText.textContent = text || '';
+      statusDot.classList.toggle('live', live);
+    }
+
+    function setAsrStatus(text) {
+      asrStatus.textContent = text || '';
+    }
+
+    function setNotionStatus(text) {
+      notionStatus.textContent = text || '';
+    }
+
     function revokeAudioUrl() {
       if (currentAudioUrl) {
         URL.revokeObjectURL(currentAudioUrl);
@@ -112,128 +415,179 @@
       }
     }
 
+    // 支持性检测
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('This browser does not support getUserMedia.', false);
+      btnStart.disabled = true;
+      log('getUserMedia not supported');
+    } else if (typeof MediaRecorder === 'undefined') {
+      setStatus('This browser does not support MediaRecorder API.', false);
+      btnStart.disabled = true;
+      log('MediaRecorder is undefined');
+    } else {
+      setStatus('Ready to record.', false);
+      log('MediaRecorder supported.');
+    }
+
     // 开始录音
     btnStart.addEventListener('click', async () => {
       try {
+        setStatus('Requesting microphone permission…', false);
+        setAsrStatus('');
+        setNotionStatus('');
+        resultText.textContent = '(Transcription will appear here)';
+        textToSave.value = '';
+        btnSaveNotion.disabled = true;
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         chunks = [];
+        currentBlob = null;
 
-        mediaRecorder.ondataavailable = e => {
+        mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
             chunks.push(e.data);
           }
         };
 
         mediaRecorder.onstop = () => {
-          // 得到完整音频 Blob
-          currentBlob = new Blob(chunks, { type: 'audio/webm' });
+          if (!chunks.length) {
+            setStatus('No audio captured.', false);
+            return;
+          }
+
+          const firstChunkType = chunks[0] && chunks[0].type;
+          const mimeType =
+            firstChunkType ||
+            (mediaRecorder && mediaRecorder.mimeType) ||
+            'audio/webm';
+
+          log('Recorded mimeType: ' + mimeType);
+
+          currentBlob = new Blob(chunks, { type: mimeType });
           chunks = [];
 
-          // 生成本地 URL 用于播放
           revokeAudioUrl();
           currentAudioUrl = URL.createObjectURL(currentBlob);
           audioPlayer.src = currentAudioUrl;
           audioPlayer.load();
 
-          setStatus('Recording stopped. You can play it or send to ASR.');
+          setStatus('Recording stopped. You can play or transcribe.', false);
           btnTranscribe.disabled = false;
         };
 
         mediaRecorder.start();
-        setStatus('Recording… (click "Stop Recording" when finished)');
+        setStatus('Recording… click Stop when finished.', true);
+        log('MediaRecorder started. state=' + mediaRecorder.state);
+
         btnStart.disabled = true;
-        btnStop.disabled = false;
+        btnStop.disabled = true;
         btnTranscribe.disabled = true;
-        btnSaveNotion.disabled = true;
+
+        setTimeout(() => {
+          btnStop.disabled = false;
+        }, 200);
       } catch (err) {
         console.error(err);
-        setStatus('Error: unable to access microphone.');
+        log('Error in getUserMedia: ' + err.message);
+        setStatus('Error: ' + err.message, false);
       }
     });
 
     // 停止录音
     btnStop.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-        // 停止音轨，释放麦克风
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      if (!mediaRecorder) return;
+      if (mediaRecorder.state === 'inactive') {
+        log('MediaRecorder already inactive.');
+        return;
       }
+
+      log('Stopping recorder. state=' + mediaRecorder.state);
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+
       btnStart.disabled = false;
       btnStop.disabled = true;
+      setStatus('Stopping…', false);
     });
 
-    // 上传音频给后端 ASR
+    // 调用 Flask /asr 做语音转文字
     btnTranscribe.addEventListener('click', async () => {
       if (!currentBlob) {
-        setStatus('No recording to send.');
+        setAsrStatus('No recording to send.');
         return;
       }
 
       const formData = new FormData();
       formData.append('file', currentBlob, 'recording.webm');
 
-      setStatus('Uploading audio and transcribing…');
       btnTranscribe.disabled = true;
+      setAsrStatus('Sending audio to /asr…');
+      log('POST ' + API_BASE + '/asr');
 
       try {
-        const res = await fetch('https://api.yourdomain.com/asr', {
+        const res = await fetch(API_BASE + '/asr', {
           method: 'POST',
           body: formData
         });
 
         if (!res.ok) {
-          throw new Error('ASR request failed: ' + res.status);
+          throw new Error('HTTP ' + res.status);
         }
 
         const data = await res.json();
         const text = data.text || '';
 
-        resultEl.textContent = text || '(empty transcription)';
+        resultText.textContent = text || '(Empty transcription)';
         textToSave.value = text;
+        setAsrStatus('Transcription completed.');
         btnSaveNotion.disabled = !text;
-        setStatus('Transcription done.');
       } catch (err) {
         console.error(err);
-        setStatus('ASR error: ' + err.message);
+        log('ASR error: ' + err.message);
+        setAsrStatus('ASR error: ' + err.message);
         btnTranscribe.disabled = false;
       }
     });
 
-    // 将文字保存到 Notion
+    // 调用 Flask /notion-save 保存到 Notion
     btnSaveNotion.addEventListener('click', async () => {
       const content = textToSave.value.trim();
       if (!content) {
-        setStatus('No text to save.');
+        setNotionStatus('No text to save.');
         return;
       }
 
-      setStatus('Saving to Notion…');
       btnSaveNotion.disabled = true;
+      setNotionStatus('Saving to Notion via /notion-save…');
+      log('POST ' + API_BASE + '/notion-save');
 
       try {
-        const res = await fetch('https://api.yourdomain.com/notion-save', {
+        const payload = {
+          content,
+          title: new Date().toLocaleString(),
+          source: 'voice-notes'
+        };
+
+        const res = await fetch(API_BASE + '/notion-save', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            content,
-            title: new Date().toLocaleString(),
-            source: 'voice-demo'
-          })
+          body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
-          throw new Error('Notion save failed: ' + res.status);
+          throw new Error('HTTP ' + res.status);
         }
 
         const data = await res.json();
-        console.log('Notion response:', data);
-        setStatus('Saved to Notion successfully.');
+        log('Notion response: ' + JSON.stringify(data));
+        setNotionStatus('Saved to Notion successfully.');
       } catch (err) {
         console.error(err);
-        setStatus('Notion error: ' + err.message);
+        log('Notion error: ' + err.message);
+        setNotionStatus('Notion error: ' + err.message);
         btnSaveNotion.disabled = false;
       }
     });
