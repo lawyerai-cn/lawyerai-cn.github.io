@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Voice to Notion Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      margin: 0.25rem 0.25rem 0.25rem 0;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    #result {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid #eee;
+      min-height: 4rem;
+      background: #fafafa;
+      white-space: pre-wrap;
+    }
+    textarea {
+      width: 100%;
+      min-height: 6rem;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    .section-title {
+      margin-top: 1.5rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Voice → Text → Notion</h1>
+
+  <!-- 录音控制 -->
+  <div>
+    <button id="btnStart">Start Recording</button>
+    <button id="btnStop" disabled>Stop Recording</button>
+    <span id="status"></span>
+  </div>
+
+  <!-- 本地音频播放 -->
+  <div class="section-title">Recorded Audio</div>
+  <audio id="audioPlayer" controls style="width:100%;"></audio>
+
+  <!-- 转写结果显示 / 编辑 -->
+  <div class="section-title">Transcription</div>
+  <div id="result">(transcription will appear here)</div>
+
+  <div class="section-title">Transcription (editable before saving to Notion)</div>
+  <textarea id="textToSave" placeholder="You can edit the transcription here before saving to Notion."></textarea>
+
+  <!-- 操作按钮 -->
+  <div style="margin-top: 0.5rem;">
+    <button id="btnTranscribe" disabled>Send Audio to ASR</button>
+    <button id="btnSaveNotion" disabled>Save Text to Notion</button>
+  </div>
+
+  <script>
+    let mediaRecorder = null;
+    let chunks = [];
+    let currentBlob = null;
+    let currentAudioUrl = null;
+
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnTranscribe = document.getElementById('btnTranscribe');
+    const btnSaveNotion = document.getElementById('btnSaveNotion');
+    const statusEl = document.getElementById('status');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const resultEl = document.getElementById('result');
+    const textToSave = document.getElementById('textToSave');
+
+    // 更新状态文本
+    function setStatus(msg) {
+      statusEl.textContent = msg || '';
+    }
+
+    // 清理旧的音频 URL，避免内存泄漏
+    function revokeAudioUrl() {
+      if (currentAudioUrl) {
+        URL.revokeObjectURL(currentAudioUrl);
+        currentAudioUrl = null;
+      }
+    }
+
+    // 开始录音
+    btnStart.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        chunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          // 得到完整音频 Blob
+          currentBlob = new Blob(chunks, { type: 'audio/webm' });
+          chunks = [];
+
+          // 生成本地 URL 用于播放
+          revokeAudioUrl();
+          currentAudioUrl = URL.createObjectURL(currentBlob);
+          audioPlayer.src = currentAudioUrl;
+          audioPlayer.load();
+
+          setStatus('Recording stopped. You can play it or send to ASR.');
+          btnTranscribe.disabled = false;
+        };
+
+        mediaRecorder.start();
+        setStatus('Recording… (click "Stop Recording" when finished)');
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+        btnTranscribe.disabled = true;
+        btnSaveNotion.disabled = true;
+      } catch (err) {
+        console.error(err);
+        setStatus('Error: unable to access microphone.');
+      }
+    });
+
+    // 停止录音
+    btnStop.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        // 停止音轨，释放麦克风
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      }
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+    });
+
+    // 上传音频给后端 ASR
+    btnTranscribe.addEventListener('click', async () => {
+      if (!currentBlob) {
+        setStatus('No recording to send.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', currentBlob, 'recording.webm');
+
+      setStatus('Uploading audio and transcribing…');
+      btnTranscribe.disabled = true;
+
+      try {
+        const res = await fetch('https://api.yourdomain.com/asr', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          throw new Error('ASR request failed: ' + res.status);
+        }
+
+        const data = await res.json();
+        const text = data.text || '';
+
+        resultEl.textContent = text || '(empty transcription)';
+        textToSave.value = text;
+        btnSaveNotion.disabled = !text;
+        setStatus('Transcription done.');
+      } catch (err) {
+        console.error(err);
+        setStatus('ASR error: ' + err.message);
+        btnTranscribe.disabled = false;
+      }
+    });
+
+    // 将文字保存到 Notion
+    btnSaveNotion.addEventListener('click', async () => {
+      const content = textToSave.value.trim();
+      if (!content) {
+        setStatus('No text to save.');
+        return;
+      }
+
+      setStatus('Saving to Notion…');
+      btnSaveNotion.disabled = true;
+
+      try {
+        const res = await fetch('https://api.yourdomain.com/notion-save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            content,
+            title: new Date().toLocaleString(),
+            source: 'voice-demo'
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error('Notion save failed: ' + res.status);
+        }
+
+        const data = await res.json();
+        console.log('Notion response:', data);
+        setStatus('Saved to Notion successfully.');
+      } catch (err) {
+        console.error(err);
+        setStatus('Notion error: ' + err.message);
+        btnSaveNotion.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
