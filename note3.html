@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Recording Test MVP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      margin: 0.25rem 0.25rem 0.25rem 0;
+      padding: 0.45rem 0.9rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #status {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+      min-height: 1.2rem;
+    }
+    audio {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    #log {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: #888;
+      white-space: pre-wrap;
+      background: #fafafa;
+      border-radius: 4px;
+      padding: 0.5rem;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recording Test (Record + Play)</h1>
+
+  <div>
+    <button id="btnStart">Start Recording</button>
+    <button id="btnStop" disabled>Stop Recording</button>
+    <span id="status"></span>
+  </div>
+
+  <audio id="audioPlayer" controls></audio>
+
+  <div id="log"></div>
+
+  <script>
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const statusEl = document.getElementById('status');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const logEl = document.getElementById('log');
+
+    let mediaRecorder = null;
+    let chunks = [];
+    let currentAudioUrl = null;
+
+    function log(msg) {
+      console.log(msg);
+      logEl.textContent += msg + '\n';
+    }
+
+    function setStatus(msg) {
+      statusEl.textContent = msg || '';
+    }
+
+    function revokeAudioUrl() {
+      if (currentAudioUrl) {
+        URL.revokeObjectURL(currentAudioUrl);
+        currentAudioUrl = null;
+      }
+    }
+
+    // 先做支持性检测
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('This browser does not support audio recording (getUserMedia).');
+      btnStart.disabled = true;
+      log('navigator.mediaDevices.getUserMedia not available');
+    } else if (typeof MediaRecorder === 'undefined') {
+      setStatus('This browser does not support MediaRecorder API.');
+      btnStart.disabled = true;
+      log('MediaRecorder is undefined');
+    } else {
+      log('MediaRecorder is supported. Ready to record.');
+    }
+
+    btnStart.addEventListener('click', async () => {
+      try {
+        setStatus('Requesting microphone permission…');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        mediaRecorder = new MediaRecorder(stream);
+        chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          if (!chunks.length) {
+            setStatus('No audio data captured.');
+            return;
+          }
+
+          // 自动使用浏览器提供的 mimeType，避免写死 webm
+          const firstChunkType = chunks[0] && chunks[0].type;
+          const mimeType =
+            firstChunkType ||
+            (mediaRecorder && mediaRecorder.mimeType) ||
+            'audio/webm';
+
+          log('Recorded mimeType: ' + mimeType);
+
+          const blob = new Blob(chunks, { type: mimeType });
+          chunks = [];
+
+          revokeAudioUrl();
+          currentAudioUrl = URL.createObjectURL(blob);
+          audioPlayer.src = currentAudioUrl;
+          audioPlayer.load();
+
+          setStatus('Recording stopped. You can press Play to listen.');
+        };
+
+        mediaRecorder.start();
+        setStatus('Recording… Click "Stop Recording" when finished.');
+        log('MediaRecorder started. state=' + mediaRecorder.state);
+
+        btnStart.disabled = true;
+        btnStop.disabled = true; // 先禁，稍后启用
+        // 有的浏览器需要一点时间才会真正进入 recording 状态
+        setTimeout(() => {
+          btnStop.disabled = false;
+        }, 200);
+      } catch (err) {
+        console.error(err);
+        log('Error in getUserMedia: ' + err.message);
+        setStatus('Error: unable to access microphone (' + err.message + ').');
+      }
+    });
+
+    btnStop.addEventListener('click', () => {
+      if (!mediaRecorder) {
+        return;
+      }
+      if (mediaRecorder.state === 'inactive') {
+        log('MediaRecorder already inactive.');
+        return;
+      }
+
+      log('Stopping recorder. state=' + mediaRecorder.state);
+      mediaRecorder.stop();
+
+      // 停止所有轨道，释放麦克风
+      mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+      setStatus('Stopping…');
+    });
+  </script>
+</body>
+</html>
