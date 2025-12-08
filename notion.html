@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minimal Tasks UI</title>
+  <!-- 限制缩放：user-scalable=no + maximum-scale=1 -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <style>
+    :root {
+      --bg: #f7f7f9;
+      --bg-card: #ffffff;
+      --border: #e5e7eb;
+      --border-soft: #f1f5f9;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #eff4ff;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      min-height: 100vh;
+      padding: 12px 14px 70px;
+    }
+
+    /* 顶部 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .header-title h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .header-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .header-right {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Tab 导航 */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      background: #edf0f4;
+      padding: 4px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      padding: 7px 0;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .tab-btn span.badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #4b5563;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+    }
+
+    .tab-btn.active span.badge {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* 面板 */
+    .panel {
+      display: none;
+      margin-top: 8px;
+    }
+    .panel.active {
+      display: block;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin: 10px 2px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title span.count {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .empty {
+      padding: 18px 4px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* 今日视图：任务卡仅标题+说明+勾选框 */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .task-card-today {
+      padding: 10px 11px;
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .task-checkbox {
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .task-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .task-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .task-title.completed,
+    .task-desc.completed {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+
+    .overdue-label {
+      font-size: 11px;
+      color: #b91c1c;
+      margin-top: 4px;
+    }
+
+    /* 一周视图：六宫格 / 网格，仅标题 */
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    @media (min-width: 420px) {
+      .week-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    .week-day-card {
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      padding: 8px 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .week-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .week-day-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: #4b5563;
+    }
+
+    .week-day-count {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .week-day-card.today {
+      border-color: var(--accent);
+      background: #eff6ff;
+    }
+
+    .week-tasks {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .week-task-title {
+      font-size: 11px;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .week-task-title.empty {
+      color: var(--muted);
+    }
+
+    /* Inbox 视图：右侧三个图标按钮 */
+    .inbox-item {
+      padding: 9px 10px;
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .inbox-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .inbox-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .inbox-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .inbox-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 4px;
+    }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #4b5563;
+      cursor: pointer;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.94);
+      background: #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部 -->
+    <header class="header">
+      <div class="header-title">
+        <h1>Tasks</h1>
+        <span id="todayLabel"></span>
+      </div>
+      <div class="header-right">
+        极简视图
+      </div>
+    </header>
+
+    <!-- Tab 导航 -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="today">
+        今日
+        <span class="badge" id="badgeToday">0</span>
+      </button>
+      <button class="tab-btn" data-tab="week">
+        一周
+        <span class="badge" id="badgeWeek">0</span>
+      </button>
+      <button class="tab-btn" data-tab="inbox">
+        Inbox
+        <span class="badge" id="badgeInbox">0</span>
+      </button>
+    </div>
+
+    <!-- 今日任务 -->
+    <section class="panel active" data-panel="today">
+      <div class="section-title">
+        <span>逾期任务</span>
+        <span class="count" id="countOverdue">0 项</span>
+      </div>
+      <div class="task-list" id="listOverdue"></div>
+
+      <div class="section-title">
+        <span>今日任务</span>
+        <span class="count" id="countToday">0 项</span>
+      </div>
+      <div class="task-list" id="listToday"></div>
+    </section>
+
+    <!-- 一周任务：六宫格 -->
+    <section class="panel" data-panel="week">
+      <div class="section-title">
+        <span>本周</span>
+        <span class="count" id="countWeek">0 项</span>
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+    </section>
+
+    <!-- Inbox -->
+    <section class="panel" data-panel="inbox">
+      <div class="section-title">
+        <span>Inbox（未设日期）</span>
+        <span class="count" id="countInbox">0 项</span>
+      </div>
+      <div class="task-list" id="listInbox"></div>
+    </section>
+  </div>
+
+  <script>
+    // ---- 示例任务数据：增加 description 字段 ----
+    const sampleTasks = [
+      {
+        id: "1",
+        title: "起草供应商框架协议初稿",
+        description: "为 A 客户供应链项目起草第一版框架协议，关注违约责任与价格调整机制。",
+        status: "进行中",
+        dueDate: offsetDate(-1),    // 昨天（逾期）
+        createdAt: offsetDate(-5)
+      },
+      {
+        id: "2",
+        title: "审核员工手册数据合规章节",
+        description: "检查员工手册中涉及个人信息收集、监控及跨境传输的条款。",
+        status: "待办",
+        dueDate: todayISO(),
+        createdAt: offsetDate(-2)
+      },
+      {
+        id: "3",
+        title: "准备周五内部培训 PPT",
+        description: "整理 AI 在合同审阅中的应用示例，控制在 20 页以内。",
+        status: "待办",
+        dueDate: offsetDate(2),
+        createdAt: todayISO()
+      },
+      {
+        id: "4",
+        title: "跟进德国商标许可公证认证要求",
+        description: "确认商标许可协议是否需事先公证再进行海牙认证。",
+        status: "待办",
+        dueDate: offsetDate(4),
+        createdAt: offsetDate(-1)
+      },
+      {
+        id: "5",
+        title: "补录上周工时并整理项目编号",
+        description: "在必智中补录上周所有案件工时，核对项目编码无误。",
+        status: "已完成",
+        dueDate: offsetDate(-3),
+        createdAt: offsetDate(-7)
+      },
+      {
+        id: "6",
+        title: "整理 Notion 任务数据库字段",
+        description: "统一 Notion 数据库属性命名，支持日期、状态、优先级三类核心字段。",
+        status: "待办",
+        dueDate: null,
+        createdAt: todayISO()
+      },
+      {
+        id: "7",
+        title: "更新客户 B 数据跨境合规矩阵",
+        description: "根据最新法规更新美国、欧盟、东盟的跨境规则表。",
+        status: "进行中",
+        dueDate: offsetDate(5),
+        createdAt: todayISO()
+      },
+      {
+        id: "8",
+        title: "学习 deepseek OCR 识别方案",
+        description: "测试 deepseek OCR 在扫描合同中的布局识别效果。",
+        status: "待办",
+        dueDate: null,
+        createdAt: offsetDate(-1)
+      }
+    ];
+
+    // ---- 时间工具函数 ----
+    function todayISO() {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d.toISOString();
+    }
+    function offsetDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      d.setHours(0,0,0,0);
+      return d.toISOString();
+    }
+    function dateKey(iso) {
+      if (!iso) return null;
+      return iso.slice(0, 10);
+    }
+    function isSameDay(a, b) {
+      return dateKey(a) === dateKey(b);
+    }
+    function formatDateShort(iso) {
+      const d = new Date(iso);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+
+    function weekdayLabel(d) {
+      const map = ["日","一","二","三","四","五","六"];
+      return "周" + map[d.getDay()];
+    }
+
+    function getWeekDates() {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const day = today.getDay(); // 0 Sun - 6 Sat
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + mondayOffset + i);
+        d.setHours(0,0,0,0);
+        days.push(d);
+      }
+      return days;
+    }
+
+    // ---- 渲染逻辑 ----
+    function render(tasks) {
+      const today = todayISO();
+      const todayKey = dateKey(today);
+
+      const withDue = tasks.filter(t => t.dueDate);
+      const overdue = withDue.filter(t => dateKey(t.dueDate) < todayKey && t.status !== "已完成");
+      const todayTasks = withDue.filter(t => isSameDay(t.dueDate, today));
+      const inbox = tasks.filter(t => !t.dueDate);
+
+      const weekDates = getWeekDates();
+      const weekStartKey = dateKey(weekDates[0].toISOString());
+      const weekEndKey = dateKey(weekDates[6].toISOString());
+      const weekTasks = withDue.filter(t => {
+        const k = dateKey(t.dueDate);
+        return k >= weekStartKey && k <= weekEndKey;
+      });
+
+      // 顶部计数
+      document.getElementById("badgeToday").textContent = overdue.length + todayTasks.length;
+      document.getElementById("badgeWeek").textContent = weekTasks.length;
+      document.getElementById("badgeInbox").textContent = inbox.length;
+
+      document.getElementById("countOverdue").textContent = overdue.length + " 项";
+      document.getElementById("countToday").textContent = todayTasks.length + " 项";
+      document.getElementById("countWeek").textContent = weekTasks.length + " 项";
+      document.getElementById("countInbox").textContent = inbox.length + " 项";
+
+      // 今日视图
+      const listOverdue = document.getElementById("listOverdue");
+      const listToday = document.getElementById("listToday");
+      listOverdue.innerHTML = "";
+      listToday.innerHTML = "";
+
+      if (overdue.length === 0) {
+        listOverdue.innerHTML = `<div class="empty">没有逾期任务</div>`;
+      } else {
+        overdue
+          .sort((a,b) => a.dueDate.localeCompare(b.dueDate))
+          .forEach(t => listOverdue.appendChild(createTodayCard(t, { overdue: true })));
+      }
+
+      if (todayTasks.length === 0) {
+        listToday.innerHTML = `<div class="empty">今天没有任务安排</div>`;
+      } else {
+        todayTasks
+          .sort((a,b) => a.title.localeCompare(b.title, "zh-CN"))
+          .forEach(t => listToday.appendChild(createTodayCard(t)));
+      }
+
+      // 一周视图：六宫格
+      const weekGrid = document.getElementById("weekGrid");
+      weekGrid.innerHTML = "";
+
+      const todayKeyNow = todayKey;
+
+      weekDates.forEach(d => {
+        const key = dateKey(d.toISOString());
+        const dayTasks = weekTasks.filter(t => dateKey(t.dueDate) === key);
+
+        const card = document.createElement("div");
+        card.className = "week-day-card" + (key === todayKeyNow ? " today" : "");
+
+        const header = document.createElement("div");
+        header.className = "week-day-header";
+        const title = document.createElement("span");
+        title.className = "week-day-title";
+        title.textContent = `${weekdayLabel(d)} · ${formatDateShort(d.toISOString())}`;
+        const cnt = document.createElement("span");
+        cnt.className = "week-day-count";
+        cnt.textContent = `${dayTasks.length} 项`;
+        header.appendChild(title);
+        header.appendChild(cnt);
+
+        const list = document.createElement("div");
+        list.className = "week-tasks";
+
+        if (dayTasks.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "week-task-title empty";
+          empty.textContent = "暂无任务";
+          list.appendChild(empty);
+        } else {
+          dayTasks
+            .sort((a,b) => a.title.localeCompare(b.title, "zh-CN"))
+            .forEach(t => {
+              const item = document.createElement("div");
+              item.className = "week-task-title";
+              item.textContent = t.title || "(未命名任务)";
+              list.appendChild(item);
+            });
+        }
+
+        card.appendChild(header);
+        card.appendChild(list);
+        weekGrid.appendChild(card);
+      });
+
+      // Inbox 视图
+      const listInbox = document.getElementById("listInbox");
+      listInbox.innerHTML = "";
+      if (inbox.length === 0) {
+        listInbox.innerHTML = `<div class="empty">暂无 Inbox 任务</div>`;
+      } else {
+        inbox
+          .sort((a,b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+          .forEach(t => listInbox.appendChild(createInboxItem(t)));
+      }
+    }
+
+    // 今日视图卡片：勾选框+标题+说明
+    function createTodayCard(task, opt = {}) {
+      const card = document.createElement("div");
+      card.className = "task-card-today";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "task-checkbox";
+      checkbox.checked = task.status === "已完成";
+
+      const main = document.createElement("div");
+      main.className = "task-main";
+
+      const title = document.createElement("div");
+      title.className = "task-title";
+      title.textContent = task.title || "(未命名任务)";
+
+      const desc = document.createElement("div");
+      desc.className = "task-desc";
+      desc.textContent = task.description || "";
+
+      if (checkbox.checked) {
+        title.classList.add("completed");
+        desc.classList.add("completed");
+      }
+
+      checkbox.addEventListener("change", () => {
+        const completed = checkbox.checked;
+        title.classList.toggle("completed", completed);
+        desc.classList.toggle("completed", completed);
+        // 这里可以后续对接 Notion API 更新状态
+      });
+
+      main.appendChild(title);
+      if (task.description) main.appendChild(desc);
+
+      if (opt.overdue && task.dueDate) {
+        const overdue = document.createElement("div");
+        overdue.className = "overdue-label";
+        overdue.textContent = "已逾期";
+        main.appendChild(overdue);
+      }
+
+      card.appendChild(checkbox);
+      card.appendChild(main);
+      return card;
+    }
+
+    // Inbox 行：左侧标题+说明，右侧三个图标按钮
+    function createInboxItem(task) {
+      const row = document.createElement("div");
+      row.className = "inbox-item";
+
+      const main = document.createElement("div");
+      main.className = "inbox-main";
+
+      const title = document.createElement("div");
+      title.className = "inbox-title";
+      title.textContent = task.title || "(未命名任务)";
+
+      const desc = document.createElement("div");
+      desc.className = "inbox-desc";
+      desc.textContent = task.description || "";
+
+      main.appendChild(title);
+      if (task.description) main.appendChild(desc);
+
+      const actions = document.createElement("div");
+      actions.className = "inbox-actions";
+
+      const btnToday = document.createElement("button");
+      btnToday.className = "icon-btn";
+      btnToday.title = "设为今日";
+      btnToday.textContent = "☀️";
+
+      const btnTomorrow = document.createElement("button");
+      btnTomorrow.className = "icon-btn";
+      btnTomorrow.title = "设为明日";
+      btnTomorrow.textContent = "🌤";
+
+      const btnPick = document.createElement("button");
+      btnPick.className = "icon-btn";
+      btnPick.title = "选择日期";
+      btnPick.textContent = "📅";
+
+      // 这里先只做 UI，后续可以绑定实际日期选择 / Notion 更新逻辑
+      btnToday.addEventListener("click", () => {
+        console.log("设为今日：", task.title);
+      });
+      btnTomorrow.addEventListener("click", () => {
+        console.log("设为明日：", task.title);
+      });
+      btnPick.addEventListener("click", () => {
+        console.log("选择日期：", task.title);
+      });
+
+      actions.appendChild(btnToday);
+      actions.appendChild(btnTomorrow);
+      actions.appendChild(btnPick);
+
+      row.appendChild(main);
+      row.appendChild(actions);
+      return row;
+    }
+
+    // Tab 切换
+    function initTabs() {
+      const buttons = document.querySelectorAll(".tab-btn");
+      const panels = document.querySelectorAll(".panel");
+
+      buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const target = btn.getAttribute("data-tab");
+          buttons.forEach(b => b.classList.remove("active"));
+          panels.forEach(p => p.classList.remove("active"));
+          btn.classList.add("active");
+          document.querySelector(`.panel[data-panel="${target}"]`).classList.add("active");
+        });
+      });
+    }
+
+    function initTodayLabel() {
+      const label = document.getElementById("todayLabel");
+      const d = new Date();
+      const opts = { month: "long", day: "numeric", weekday: "short" };
+      label.textContent = d.toLocaleDateString("zh-CN", opts);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initTabs();
+      initTodayLabel();
+      render(sampleTasks);
+    });
+  </script>
+</body>
+</html>
