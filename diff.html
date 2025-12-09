@@ -14,9 +14,8 @@
     
     <!-- 核心库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
-    <!-- 截图库 -->
+    <!-- PDF生成依赖 (html2canvas用于渲染，jspdf用于生成) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- PDF库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
@@ -31,6 +30,8 @@
             --ins-bg: #e6ffec; --ins-color: #2da44e;
             --nav-bg: rgba(255, 255, 255, 0.85);
             --header-border: rgba(0,0,0,0.1);
+            --search-highlight: #ffeb3b;
+            --search-current: #ff9800;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -44,31 +45,25 @@
                 --ins-bg: #153620; --ins-color: #7ee787;
                 --nav-bg: rgba(28, 28, 30, 0.85);
                 --header-border: rgba(255,255,255,0.15);
+                --search-highlight: #665c00; /* 暗色模式下的高亮 */
+                --search-current: #995c00;
             }
         }
 
-        html, body {
-            touch-action: pan-x pan-y;
-            overflow: hidden;
-            height: 100%;
-        }
+        html, body { touch-action: pan-x pan-y; overflow: hidden; height: 100%; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0; padding: 0;
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg); color: var(--text);
             display: flex; flex-direction: column;
         }
 
-        /* 顶部导航 */
         header {
             position: fixed; top: 0; left: 0; right: 0;
             padding: max(10px, env(safe-area-inset-top)) 15px 10px;
-            text-align: center;
-            font-weight: 600; font-size: 17px;
-            z-index: 20;
-            background: var(--nav-bg);
+            text-align: center; font-weight: 600; font-size: 17px;
+            z-index: 20; background: var(--nav-bg);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-bottom: 0.5px solid var(--header-border);
             display: flex; justify-content: space-between; align-items: center;
@@ -80,15 +75,12 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* 主区域 */
         main {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
             padding: calc(60px + env(safe-area-inset-top)) 15px calc(100px + env(safe-area-inset-bottom));
         }
 
-        /* 输入框 */
+        /* 输入区域 */
         #input-container { transition: opacity 0.3s ease; }
         #input-container.hidden { display: none; }
         .input-group { display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px; }
@@ -104,7 +96,6 @@
             appearance: none; font-family: inherit;
         }
         textarea:focus { outline: none; border-color: var(--primary); }
-
         .btn-main {
             background-color: var(--primary); color: white;
             border: none; border-radius: 12px;
@@ -112,28 +103,79 @@
             width: 100%; cursor: pointer;
         }
 
-        /* 结果区域 */
+        /* 结果页 */
         #result-wrapper { display: none; }
         #result-wrapper.show { display: block; animation: fadeIn 0.3s; }
 
+        /* 顶部控制栏 */
         .result-controls {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 15px; background: var(--card-bg);
-            padding: 10px; border-radius: 10px;
+            margin-bottom: 10px; background: var(--card-bg);
+            padding: 10px; border-radius: 10px; gap: 10px;
         }
-        .stats { font-size: 13px; color: var(--text-sec); font-variant-numeric: tabular-nums; }
         
-        /* 模式切换按钮 */
+        .controls-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .controls-right { display: flex; align-items: center; gap: 8px; }
+
+        .stats { font-size: 13px; color: var(--text-sec); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        /* 搜索栏 (新增) */
+        #search-bar {
+            background: var(--card-bg); padding: 8px; border-radius: 10px;
+            margin-bottom: 15px; display: none; /* 默认隐藏 */
+            align-items: center; gap: 8px;
+            border: 1px solid var(--primary);
+            animation: slideDown 0.2s ease-out;
+        }
+        #search-bar.show { display: flex; }
+        
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .search-input {
+            flex: 1; border: none; background: transparent; font-size: 15px; color: var(--text);
+            padding: 4px;
+        }
+        .search-input:focus { outline: none; }
+        .search-btn {
+            background: none; border: none; padding: 4px; color: var(--primary);
+            cursor: pointer; display: flex; align-items: center;
+        }
+        .search-counter {
+            font-size: 12px; color: var(--text-sec); font-variant-numeric: tabular-nums;
+            min-width: 40px; text-align: center;
+        }
+
+        /* 按钮通用样式 */
+        .icon-btn {
+            background: rgba(120, 120, 128, 0.12);
+            border: none; border-radius: 8px;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text); cursor: pointer;
+        }
+        .icon-btn.active { background: var(--primary); color: white; }
+        
+        /* 忽略标点按钮 */
+        .btn-toggle-punct {
+            background: rgba(120, 120, 128, 0.12);
+            border: none; border-radius: 8px;
+            padding: 6px 10px; font-size: 13px; font-weight: 500;
+            color: var(--text); cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .btn-toggle-punct.active { background: var(--primary); color: white; }
+
+        /* 分段控制器 */
         .segmented {
             display: flex; background: rgba(120, 120, 128, 0.12);
             padding: 2px; border-radius: 8px;
         }
         .seg-btn {
-            padding: 4px 12px; font-size: 13px; border-radius: 6px;
+            padding: 4px 10px; font-size: 13px; border-radius: 6px;
             border: none; background: transparent; color: var(--text);
             cursor: pointer; font-weight: 500;
         }
-        .seg-btn.active { background: var(--card-bg); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+        .seg-btn.active { background: var(--card-bg); box-shadow: 0 3px 8px rgba(0,0,0,0.12); color: var(--text); }
 
         /* 结果容器 */
         #result-container {
@@ -141,11 +183,20 @@
             padding: 20px; min-height: 100px;
             line-height: 1.8; word-wrap: break-word; font-size: 17px;
         }
-        /* 截图时给一个内边距，防止字贴边 */
         .screenshot-mode { padding: 30px !important; border-radius: 0 !important; }
 
         del { background: var(--del-bg); color: var(--del-color); text-decoration: line-through; border-radius: 3px; }
         ins { background: var(--ins-bg); color: var(--ins-color); text-decoration: none; border-bottom: 2px solid; border-radius: 3px; }
+        
+        /* 搜索高亮样式 */
+        mark.search-match {
+            background-color: var(--search-highlight); color: black;
+            border-radius: 2px; padding: 0 1px;
+        }
+        mark.search-match.current {
+            background-color: var(--search-current); color: white;
+            outline: 2px solid var(--primary); outline-offset: 1px;
+        }
 
         #edit-bar {
             background: var(--card-bg); color: var(--primary);
@@ -154,7 +205,7 @@
             cursor: pointer; border: 1px solid var(--border);
         }
 
-        /* 悬浮导航 */
+        /* 底部导航 (Diff 导航) */
         #diff-nav-bar {
             position: fixed; bottom: max(20px, env(safe-area-inset-bottom));
             left: 50%; transform: translateX(-50%);
@@ -170,7 +221,7 @@
         .nav-counter { font-size: 15px; font-weight: 600; min-width: 40px; text-align: center; color: var(--text); }
         .active-change { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 3px; }
 
-        /* Action Sheet (导出菜单) */
+        /* Action Sheet */
         #action-sheet-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.4); z-index: 200;
@@ -178,7 +229,6 @@
             display: flex; flex-direction: column; justify-content: flex-end;
         }
         #action-sheet-overlay.show { opacity: 1; visibility: visible; }
-        
         .action-sheet {
             background: #F2F2F7;
             border-top-left-radius: 12px; border-top-right-radius: 12px;
@@ -187,25 +237,20 @@
         }
         @media (prefers-color-scheme: dark) { .action-sheet { background: #1C1C1E; } }
         #action-sheet-overlay.show .action-sheet { transform: translateY(0); }
-
         .action-btn {
             background: var(--card-bg); color: var(--primary);
             border: none; width: 100%; padding: 16px;
             font-size: 18px; font-weight: 500;
-            border-radius: 12px; margin-bottom: 8px;
-            cursor: pointer;
+            border-radius: 12px; margin-bottom: 8px; cursor: pointer;
         }
         .action-btn.cancel { font-weight: 600; margin-top: 8px; margin-bottom: 0; }
-        .action-btn:active { opacity: 0.7; transform: scale(0.99); }
-
-        /* Loading 提示 */
+        
         #loading-toast {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: white;
             padding: 20px; border-radius: 12px; z-index: 300;
             display: none; text-align: center; font-weight: 600;
         }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -214,8 +259,8 @@
 <header>
     <button class="btn-icon" style="font-size: 16px;" onclick="clearAll()">清空</button>
     <span>Diff Tool</span>
+    <!-- 仅保留 PDF 导出入口 -->
     <button class="btn-icon" onclick="openActionSheet()" id="btn-export" style="visibility: hidden;">
-        <!-- 导出图标 -->
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
     </button>
 </header>
@@ -238,11 +283,37 @@
     <div id="result-wrapper">
         <div id="edit-bar" onclick="toggleEditMode(true)">✏️ 修改内容</div>
         
+        <!-- 搜索栏 -->
+        <div id="search-bar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="search-input" id="search-input" placeholder="查找内容..." oninput="performSearch()">
+            <span class="search-counter" id="search-counter">0/0</span>
+            <button class="search-btn" onclick="navSearch(-1)">▲</button>
+            <button class="search-btn" onclick="navSearch(1)">▼</button>
+            <button class="search-btn" style="font-size: 18px;" onclick="closeSearch()">×</button>
+        </div>
+
         <div class="result-controls">
-            <div class="stats" id="diff-stats">计算中...</div>
-            <div class="segmented">
-                <button class="seg-btn active" id="btn-word" onclick="switchMode('word')">词</button>
-                <button class="seg-btn" id="btn-char" onclick="switchMode('char')">字</button>
+            <div class="controls-left">
+                <!-- 搜索开关 -->
+                <button class="icon-btn" onclick="toggleSearch()" title="搜索">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <div class="stats" id="diff-stats">...</div>
+            </div>
+            
+            <div class="controls-right">
+                <!-- 忽略标点 -->
+                <button id="btn-ignore-punct" class="btn-toggle-punct" onclick="togglePunctuation()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                    忽略标点
+                </button>
+
+                <!-- 模式切换 -->
+                <div class="segmented">
+                    <button class="seg-btn active" id="btn-word" onclick="switchMode('word')">词</button>
+                    <button class="seg-btn" id="btn-char" onclick="switchMode('char')">字</button>
+                </div>
             </div>
         </div>
 
@@ -250,23 +321,22 @@
     </div>
 </main>
 
-<!-- 悬浮导航 -->
+<!-- Diff 导航条 (底部悬浮) -->
 <div id="diff-nav-bar">
-    <button class="nav-btn" onclick="nav(-1)">▲</button>
+    <button class="nav-btn" onclick="navDiff(-1)">▲</button>
     <span class="nav-counter" id="nav-count">0/0</span>
-    <button class="nav-btn" onclick="nav(1)">▼</button>
+    <button class="nav-btn" onclick="navDiff(1)">▼</button>
 </div>
 
 <!-- 导出菜单 Action Sheet -->
 <div id="action-sheet-overlay" onclick="closeActionSheet()">
     <div class="action-sheet" onclick="event.stopPropagation()">
-        <button class="action-btn" onclick="exportImage()">📸 复制长截图</button>
+        <!-- 仅保留 PDF -->
         <button class="action-btn" onclick="exportPDF()">📄 保存为 PDF</button>
         <button class="action-btn cancel" onclick="closeActionSheet()">取消</button>
     </div>
 </div>
 
-<!-- Loading Toast -->
 <div id="loading-toast">处理中...</div>
 
 <script>
@@ -283,13 +353,20 @@
         stats: document.getElementById('diff-stats'),
         btnExport: document.getElementById('btn-export'),
         sheet: document.getElementById('action-sheet-overlay'),
-        loading: document.getElementById('loading-toast')
+        loading: document.getElementById('loading-toast'),
+        btnIgnore: document.getElementById('btn-ignore-punct'),
+        searchBar: document.getElementById('search-bar'),
+        searchInput: document.getElementById('search-input'),
+        searchCounter: document.getElementById('search-counter')
     };
 
     let state = {
         mode: localStorage.getItem('diff_mode') || 'word',
-        changes: [],
-        idx: -1
+        ignorePunct: false,
+        changes: [], // Diff 导航点
+        changeIdx: -1,
+        searchMatches: [], // 搜索结果点
+        searchIdx: -1
     };
 
     updateModeBtn();
@@ -299,9 +376,18 @@
         toggleEditMode(false);
     }
 
+    // --- 核心 Diff 逻辑 ---
+    function isPunctuationOrSpace(str) {
+        try { return /^[\s\p{P}\p{S}]+$/u.test(str); } 
+        catch (e) { return /^[\s.,\/#!$%\^&\*;:{}=\-_`~()？。，、；：‘’“”'"\[\]]+$/.test(str); }
+    }
+
     function renderDiff() {
         if (typeof Diff === 'undefined') return alert("Diff库加载失败");
         
+        // 搜索重置
+        closeSearch(); 
+
         const oldStr = els.old.value;
         const newStr = els.new.value;
         const diffFn = state.mode === 'char' ? Diff.diffChars : Diff.diffWords;
@@ -311,9 +397,25 @@
         let addCount = 0, delCount = 0;
 
         diffData.forEach(part => {
+            let isPunct = false;
+            if (state.ignorePunct && (part.added || part.removed)) {
+                if (isPunctuationOrSpace(part.value)) isPunct = true;
+            }
+
+            if (isPunct) {
+                if (part.removed) return; 
+                if (part.added) {
+                    const span = document.createElement('span');
+                    span.textContent = part.value;
+                    fragment.appendChild(span);
+                    return; 
+                }
+            }
+
             const span = document.createElement(part.added ? 'ins' : part.removed ? 'del' : 'span');
             span.textContent = part.value;
             fragment.appendChild(span);
+
             if(part.added) addCount++;
             if(part.removed) delCount++;
         });
@@ -322,7 +424,127 @@
         els.resBox.appendChild(fragment);
         els.stats.textContent = `-${delCount} / +${addCount}`;
         
-        initNav();
+        initDiffNav();
+    }
+
+    // --- 搜索功能 ---
+    function toggleSearch() {
+        const isShown = els.searchBar.classList.contains('show');
+        if (isShown) {
+            closeSearch();
+        } else {
+            els.searchBar.classList.add('show');
+            els.searchInput.focus();
+        }
+    }
+
+    function closeSearch() {
+        els.searchBar.classList.remove('show');
+        els.searchInput.value = '';
+        clearSearchHighlights();
+    }
+
+    function clearSearchHighlights() {
+        // 移除所有 mark 标签，保留内容
+        const marks = els.resBox.querySelectorAll('mark.search-match');
+        marks.forEach(mark => {
+            const text = document.createTextNode(mark.textContent);
+            mark.parentNode.replaceChild(text, mark);
+        });
+        // 合并相邻文本节点 (规范化DOM)
+        els.resBox.normalize();
+        state.searchMatches = [];
+        state.searchIdx = -1;
+        updateSearchUI();
+    }
+
+    function performSearch() {
+        const query = els.searchInput.value;
+        
+        // 每次输入前先清除旧的高亮
+        // 注意：这里需要一种高效的方式清除，这里采用简单粗暴的重新渲染DOM结构代价较大
+        // 更好的方式是操作 Text Nodes。为了简单稳健，我们这里先清除 highlights，再重新查找
+        
+        // 1. 清除旧高亮
+        clearSearchHighlights();
+
+        if (!query) return;
+
+        // 2. 遍历所有文本节点查找匹配
+        // 这是一个简化的实现：只在单个标签内的文本查找，不跨标签查找（对于Diff工具足够）
+        const walker = document.createTreeWalker(els.resBox, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        let node;
+        while(node = walker.nextNode()) textNodes.push(node);
+
+        let matchCount = 0;
+        
+        textNodes.forEach(textNode => {
+            const text = textNode.nodeValue;
+            const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+            
+            if (regex.test(text)) {
+                const fragment = document.createDocumentFragment();
+                let lastIdx = 0;
+                text.replace(regex, (match, p1, offset) => {
+                    // 添加匹配前的文本
+                    fragment.appendChild(document.createTextNode(text.slice(lastIdx, offset)));
+                    // 添加高亮
+                    const mark = document.createElement('mark');
+                    mark.className = 'search-match';
+                    mark.textContent = match;
+                    fragment.appendChild(mark);
+                    lastIdx = offset + match.length;
+                    matchCount++;
+                });
+                // 添加剩余文本
+                fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
+                textNode.parentNode.replaceChild(fragment, textNode);
+            }
+        });
+
+        // 3. 更新状态
+        state.searchMatches = els.resBox.querySelectorAll('mark.search-match');
+        if (state.searchMatches.length > 0) {
+            navSearch(1); // 自动跳到第一个
+        } else {
+            updateSearchUI();
+        }
+    }
+
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function navSearch(step) {
+        if (!state.searchMatches.length) return;
+        
+        if (state.searchIdx >= 0) state.searchMatches[state.searchIdx].classList.remove('current');
+
+        state.searchIdx += step;
+        if (state.searchIdx >= state.searchMatches.length) state.searchIdx = 0;
+        if (state.searchIdx < 0) state.searchIdx = state.searchMatches.length - 1;
+
+        const el = state.searchMatches[state.searchIdx];
+        el.classList.add('current');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        updateSearchUI();
+    }
+
+    function updateSearchUI() {
+        if (state.searchMatches.length === 0) {
+            els.searchCounter.textContent = "0/0";
+        } else {
+            els.searchCounter.textContent = `${state.searchIdx + 1}/${state.searchMatches.length}`;
+        }
+    }
+
+    // --- 常规逻辑 ---
+
+    function togglePunctuation() {
+        state.ignorePunct = !state.ignorePunct;
+        els.btnIgnore.classList.toggle('active', state.ignorePunct);
+        renderDiff();
     }
 
     function switchMode(mode) {
@@ -338,33 +560,34 @@
         document.getElementById('btn-char').className = state.mode === 'char' ? 'seg-btn active' : 'seg-btn';
     }
 
-    function initNav() {
+    // --- Diff 导航 ---
+    function initDiffNav() {
         state.changes = els.resBox.querySelectorAll('ins, del');
-        state.idx = -1;
+        state.changeIdx = -1;
         if (state.changes.length > 0) {
             els.navBar.classList.add('show');
-            updateNavUI();
-            nav(1);
+            updateDiffNavUI();
+            navDiff(1);
         } else {
             els.navBar.classList.remove('show');
         }
     }
 
-    function nav(step) {
+    function navDiff(step) {
         if (!state.changes.length) return;
-        if (state.idx >= 0) state.changes[state.idx].classList.remove('active-change');
-        state.idx += step;
-        if (state.idx >= state.changes.length) state.idx = 0;
-        if (state.idx < 0) state.idx = state.changes.length - 1;
+        if (state.changeIdx >= 0) state.changes[state.changeIdx].classList.remove('active-change');
+        state.changeIdx += step;
+        if (state.changeIdx >= state.changes.length) state.changeIdx = 0;
+        if (state.changeIdx < 0) state.changeIdx = state.changes.length - 1;
         
-        const el = state.changes[state.idx];
+        const el = state.changes[state.changeIdx];
         el.classList.add('active-change');
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        updateNavUI();
+        updateDiffNavUI();
     }
 
-    function updateNavUI() {
-        els.navCount.textContent = `${state.idx + 1}/${state.changes.length}`;
+    function updateDiffNavUI() {
+        els.navCount.textContent = `${state.changeIdx + 1}/${state.changes.length}`;
     }
 
     function toggleEditMode(showInput) {
@@ -373,6 +596,7 @@
             els.resWrapper.classList.remove('show');
             els.navBar.classList.remove('show');
             els.btnExport.style.visibility = 'hidden';
+            closeSearch();
         } else {
             els.inputBox.classList.add('hidden');
             els.resWrapper.classList.add('show');
@@ -381,98 +605,47 @@
         }
     }
 
-    // --- 导出功能 ---
-
+    // --- PDF 导出 ---
     function openActionSheet() { els.sheet.classList.add('show'); }
     function closeActionSheet() { els.sheet.classList.remove('show'); }
     function showLoading() { els.loading.style.display = 'block'; }
     function hideLoading() { els.loading.style.display = 'none'; }
 
-    // 通用截图生成器
-    async function generateCanvas() {
+    async function exportPDF() {
         showLoading();
         closeActionSheet();
+        
+        // 临时清理掉搜索高亮，以免印到PDF里 (如果不想清理可以注释掉这行)
+        clearSearchHighlights();
 
-        // 临时样式调整以优化截图效果
         const target = els.resBox;
         const originalStyle = target.getAttribute('style');
-        
-        // 强制背景色，防止透明
         const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
         target.style.backgroundColor = isDark ? '#1C1C1E' : '#FFFFFF';
         target.style.color = isDark ? '#FFFFFF' : '#000000';
-        target.classList.add('screenshot-mode'); // 增加内边距
+        target.classList.add('screenshot-mode');
 
         try {
             const canvas = await html2canvas(target, {
-                scale: 2, // 提高清晰度
-                useCORS: true,
+                scale: 2, useCORS: true,
                 backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                windowWidth: target.scrollWidth,
-                windowHeight: target.scrollHeight
+                windowWidth: target.scrollWidth, windowHeight: target.scrollHeight
             });
             
-            // 恢复样式
-            target.classList.remove('screenshot-mode');
-            target.setAttribute('style', originalStyle || '');
-            
-            return canvas;
-        } catch (e) {
-            alert('生成截图失败: ' + e.message);
-            hideLoading();
-            return null;
-        }
-    }
-
-    async function exportImage() {
-        if (!navigator.clipboard || !navigator.clipboard.write) {
-            alert("您的浏览器不支持直接写入剪贴板，请使用PDF导出功能。");
-            return;
-        }
-
-        const canvas = await generateCanvas();
-        if (!canvas) return;
-
-        canvas.toBlob(async (blob) => {
-            try {
-                // 写入剪贴板
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                alert("✅ 长截图已复制！\n您可以直接粘贴到微信或备忘录。");
-            } catch (err) {
-                console.error(err);
-                alert("复制失败。请尝试使用PDF保存。");
-            } finally {
-                hideLoading();
-            }
-        }, 'image/png');
-    }
-
-    async function exportPDF() {
-        const { jsPDF } = window.jspdf;
-        const canvas = await generateCanvas();
-        if (!canvas) return;
-
-        try {
+            const { jsPDF } = window.jspdf;
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            // 创建PDF，页面大小设为图片大小 (单位: pt)
-            // 0.75 是 px 到 pt 的转换比例
             const pdf = new jsPDF({
-                orientation: imgWidth > imgHeight ? 'l' : 'p',
-                unit: 'px',
-                format: [imgWidth, imgHeight] 
+                orientation: canvas.width > canvas.height ? 'l' : 'p',
+                unit: 'px', format: [canvas.width, canvas.height] 
             });
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+            pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
             pdf.save('Diff_Result.pdf');
         } catch (e) {
-            console.error(e);
-            alert("PDF生成失败");
+            alert("PDF生成失败: " + e.message);
         } finally {
+            target.classList.remove('screenshot-mode');
+            target.setAttribute('style', originalStyle || '');
             hideLoading();
         }
     }
