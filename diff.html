@@ -2,19 +2,22 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 视口设置：禁止缩放，适配刘海屏 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- iOS PWA 设置 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Diff Tool">
+    <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/192/007AFF/ffffff?text=Diff">
     
-    <title>文本差异比对</title>
-
-    <!-- 引入 Diff 算法库 -->
+    <title>Diff Tool</title>
+    
+    <!-- 核心库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+    <!-- 截图库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- PDF库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         :root {
@@ -22,406 +25,474 @@
             --bg: #F2F2F7;
             --card-bg: #FFFFFF;
             --text: #000000;
-            --del-bg: #ffeef0;
-            --del-color: #b31d28;
-            --ins-bg: #e6ffec;
-            --ins-color: #22863a;
+            --text-sec: #8E8E93;
             --border: #C6C6C8;
+            --del-bg: #ffeef0; --del-color: #d70022;
+            --ins-bg: #e6ffec; --ins-color: #2da44e;
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --header-border: rgba(0,0,0,0.1);
         }
 
-        /* 全局禁止触摸操作引起的缩放 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #000000;
+                --card-bg: #1C1C1E;
+                --text: #FFFFFF;
+                --text-sec: #98989D;
+                --border: #38383A;
+                --del-bg: #4c181d; --del-color: #ff7b72;
+                --ins-bg: #153620; --ins-color: #7ee787;
+                --nav-bg: rgba(28, 28, 30, 0.85);
+                --header-border: rgba(255,255,255,0.15);
+            }
+        }
+
         html, body {
             touch-action: pan-x pan-y;
-            overflow: hidden; /* 防止整体滚动，只允许 main 滚动 */
+            overflow: hidden;
             height: 100%;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0; padding: 0;
             background-color: var(--bg);
             color: var(--text);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
 
         /* 顶部导航 */
         header {
-            background: var(--card-bg);
+            position: fixed; top: 0; left: 0; right: 0;
             padding: max(10px, env(safe-area-inset-top)) 15px 10px;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
             text-align: center;
-            font-weight: 600;
-            font-size: 17px;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
+            font-weight: 600; font-size: 17px;
+            z-index: 20;
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--header-border);
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .btn-link {
-            color: var(--primary);
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 5px;
+        .btn-icon {
+            color: var(--primary); background: none; border: none;
+            font-size: 22px; cursor: pointer; padding: 0 5px;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        /* 主滚动区域 */
+        /* 主区域 */
         main {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: calc(max(20px, env(safe-area-inset-bottom)) + 80px);
+            padding: calc(60px + env(safe-area-inset-top)) 15px calc(100px + env(safe-area-inset-bottom));
         }
 
-        /* iOS 风格分段控制器 (Switch) */
-        .segmented-control {
-            display: flex;
-            background: #E5E5EA;
-            padding: 3px;
-            border-radius: 9px;
-            margin-bottom: 20px;
-        }
-
-        .segment-opt {
-            flex: 1;
-            text-align: center;
-            padding: 6px 0;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: 7px;
-            cursor: pointer;
-            color: #666;
-            transition: all 0.2s ease;
-        }
-
-        .segment-opt.active {
-            background: #fff;
-            color: #000;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-            font-weight: 600;
-        }
-
-        /* 输入区域 */
+        /* 输入框 */
         #input-container { transition: opacity 0.3s ease; }
         #input-container.hidden { display: none; }
-
-        .input-group { display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px; }
-        
+        .input-group { display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px; }
         .label {
-            font-size: 13px; color: #666; margin-bottom: 6px; margin-left: 4px; font-weight: 500;
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 12px; color: var(--text-sec); margin-bottom: 8px; margin-left: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;
         }
-
         textarea {
-            width: 100%; 
-            height: 220px; /* 加高高度 */
-            border: 1px solid var(--border); 
-            border-radius: 12px;
-            padding: 12px; 
-            font-size: 16px; /* 16px 防止 iOS 输入缩放 */
-            resize: none; 
-            background: var(--card-bg);
-            appearance: none; 
-            font-family: inherit;
-            line-height: 1.5;
+            width: 100%; height: 240px;
+            border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px; font-size: 17px; line-height: 1.5;
+            resize: none; background: var(--card-bg); color: var(--text);
+            appearance: none; font-family: inherit;
         }
+        textarea:focus { outline: none; border-color: var(--primary); }
 
-        textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-
-        .btn-compare {
+        .btn-main {
             background-color: var(--primary); color: white;
             border: none; border-radius: 12px;
-            padding: 15px; font-size: 17px; font-weight: 600;
-            width: 100%; box-shadow: 0 4px 12px rgba(0,122,255,0.25);
-            cursor: pointer;
+            padding: 16px; font-size: 17px; font-weight: 600;
+            width: 100%; cursor: pointer;
         }
-        .btn-compare:active { opacity: 0.8; transform: scale(0.98); }
-
-        /* 顶部展开条 */
-        #expand-bar {
-            display: none;
-            background: #e3effc; color: var(--primary);
-            padding: 12px; border-radius: 10px;
-            text-align: center; font-weight: 500;
-            margin-bottom: 15px; cursor: pointer;
-            border: 1px dashed var(--primary);
-            font-size: 15px;
-        }
-        #expand-bar.show { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* 结果区域 */
+        #result-wrapper { display: none; }
+        #result-wrapper.show { display: block; animation: fadeIn 0.3s; }
+
+        .result-controls {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; background: var(--card-bg);
+            padding: 10px; border-radius: 10px;
+        }
+        .stats { font-size: 13px; color: var(--text-sec); font-variant-numeric: tabular-nums; }
+        
+        /* 模式切换按钮 */
+        .segmented {
+            display: flex; background: rgba(120, 120, 128, 0.12);
+            padding: 2px; border-radius: 8px;
+        }
+        .seg-btn {
+            padding: 4px 12px; font-size: 13px; border-radius: 6px;
+            border: none; background: transparent; color: var(--text);
+            cursor: pointer; font-weight: 500;
+        }
+        .seg-btn.active { background: var(--card-bg); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+
+        /* 结果容器 */
         #result-container {
             background: var(--card-bg); border-radius: 12px;
-            padding: 22px; min-height: 100px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            line-height: 1.8; word-wrap: break-word; word-break: break-all;
-            display: none; font-size: 17px;
+            padding: 20px; min-height: 100px;
+            line-height: 1.8; word-wrap: break-word; font-size: 17px;
         }
-        #result-container.show { display: block; }
+        /* 截图时给一个内边距，防止字贴边 */
+        .screenshot-mode { padding: 30px !important; border-radius: 0 !important; }
 
-        /* 差异样式 */
-        del {
-            background-color: var(--del-bg); color: var(--del-color);
-            text-decoration: line-through; text-decoration-color: rgba(179, 29, 40, 0.5);
-            padding: 0 2px; border-radius: 3px;
-        }
-        ins {
-            background-color: var(--ins-bg); color: var(--ins-color);
-            text-decoration: none; border-bottom: 2px solid var(--ins-color);
-            padding: 0 2px; border-radius: 3px;
+        del { background: var(--del-bg); color: var(--del-color); text-decoration: line-through; border-radius: 3px; }
+        ins { background: var(--ins-bg); color: var(--ins-color); text-decoration: none; border-bottom: 2px solid; border-radius: 3px; }
+
+        #edit-bar {
+            background: var(--card-bg); color: var(--primary);
+            padding: 12px; border-radius: 12px; text-align: center;
+            font-weight: 600; font-size: 15px; margin-bottom: 20px;
+            cursor: pointer; border: 1px solid var(--border);
         }
 
-        /* 导航焦点样式 */
-        .active-change {
-            outline: 2px solid var(--primary);
-            outline-offset: 3px;
-            background-color: #fffacd !important;
-            transition: all 0.2s;
-            border-radius: 2px;
-        }
-
-        /* 悬浮导航条 */
+        /* 悬浮导航 */
         #diff-nav-bar {
-            position: fixed;
-            bottom: max(20px, env(safe-area-inset-bottom));
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            padding: 8px 12px;
-            border-radius: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            display: none;
-            align-items: center;
-            gap: 12px;
-            z-index: 100;
-            border: 0.5px solid rgba(0,0,0,0.1);
+            position: fixed; bottom: max(20px, env(safe-area-inset-bottom));
+            left: 50%; transform: translateX(-50%);
+            background: var(--nav-bg);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 8px 16px; border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none; align-items: center; gap: 15px; z-index: 100;
+            border: 0.5px solid var(--header-border);
         }
         #diff-nav-bar.show { display: flex; }
+        .nav-btn { background: transparent; border: none; font-size: 20px; color: var(--primary); display: flex; align-items: center; }
+        .nav-counter { font-size: 15px; font-weight: 600; min-width: 40px; text-align: center; color: var(--text); }
+        .active-change { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 3px; }
 
-        .nav-btn {
-            background: rgba(0,0,0,0.05); border: none;
-            width: 40px; height: 40px; border-radius: 20px;
-            font-size: 18px; cursor: pointer; color: var(--primary);
-            display: flex; align-items: center; justify-content: center;
+        /* Action Sheet (导出菜单) */
+        #action-sheet-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); z-index: 200;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+            display: flex; flex-direction: column; justify-content: flex-end;
         }
-        .nav-btn:active { background: rgba(0,0,0,0.1); }
+        #action-sheet-overlay.show { opacity: 1; visibility: visible; }
         
-        .nav-counter {
-            font-size: 15px; font-variant-numeric: tabular-nums;
-            color: #333; font-weight: 600; min-width: 50px;
-            text-align: center;
+        .action-sheet {
+            background: #F2F2F7;
+            border-top-left-radius: 12px; border-top-right-radius: 12px;
+            padding: 10px 10px max(20px, env(safe-area-inset-bottom));
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        
-        .empty-tip { text-align: center; color: #999; margin-top: 40px; font-size: 15px; }
+        @media (prefers-color-scheme: dark) { .action-sheet { background: #1C1C1E; } }
+        #action-sheet-overlay.show .action-sheet { transform: translateY(0); }
 
+        .action-btn {
+            background: var(--card-bg); color: var(--primary);
+            border: none; width: 100%; padding: 16px;
+            font-size: 18px; font-weight: 500;
+            border-radius: 12px; margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .action-btn.cancel { font-weight: 600; margin-top: 8px; margin-bottom: 0; }
+        .action-btn:active { opacity: 0.7; transform: scale(0.99); }
+
+        /* Loading 提示 */
+        #loading-toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: white;
+            padding: 20px; border-radius: 12px; z-index: 300;
+            display: none; text-align: center; font-weight: 600;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <header>
-    <button class="btn-link" onclick="clearAll()">清空</button>
+    <button class="btn-icon" style="font-size: 16px;" onclick="clearAll()">清空</button>
     <span>Diff Tool</span>
-    <div style="width: 35px;"></div>
+    <button class="btn-icon" onclick="openActionSheet()" id="btn-export" style="visibility: hidden;">
+        <!-- 导出图标 -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+    </button>
 </header>
 
 <main>
-    <div id="expand-bar" onclick="toggleEditMode(true)">
-        ✏️ 点击此处修改文本
-    </div>
-
     <div id="input-container">
-        <!-- 比较模式切换 -->
-        <div class="segmented-control">
-            <div class="segment-opt active" onclick="setMode('word')" id="opt-word">按词比较 (Word)</div>
-            <div class="segment-opt" onclick="setMode('char')" id="opt-char">按字比较 (Char)</div>
-        </div>
-
         <div class="input-group">
             <div>
                 <div class="label">原文 (Original)</div>
-                <textarea id="oldText" placeholder="在此粘贴..."></textarea>
+                <textarea id="oldText" placeholder="在此粘贴原文..."></textarea>
             </div>
             <div>
                 <div class="label">新文 (Modified)</div>
-                <textarea id="newText" placeholder="在此粘贴..."></textarea>
+                <textarea id="newText" placeholder="在此粘贴新文..."></textarea>
             </div>
         </div>
-        <button class="btn-compare" onclick="computeDiff()">开始比较</button>
+        <button class="btn-main" onclick="startCompare()">开始比较</button>
     </div>
 
     <div id="result-wrapper">
-        <div class="label" id="resLabel" style="display:none; margin-top:10px; margin-bottom: 10px;">比较结果:</div>
+        <div id="edit-bar" onclick="toggleEditMode(true)">✏️ 修改内容</div>
+        
+        <div class="result-controls">
+            <div class="stats" id="diff-stats">计算中...</div>
+            <div class="segmented">
+                <button class="seg-btn active" id="btn-word" onclick="switchMode('word')">词</button>
+                <button class="seg-btn" id="btn-char" onclick="switchMode('char')">字</button>
+            </div>
+        </div>
+
         <div id="result-container"></div>
     </div>
 </main>
 
 <!-- 悬浮导航 -->
 <div id="diff-nav-bar">
-    <button class="nav-btn" onclick="navigateDiff(-1)">▲</button>
-    <span class="nav-counter" id="nav-counter">0 / 0</span>
-    <button class="nav-btn" onclick="navigateDiff(1)">▼</button>
+    <button class="nav-btn" onclick="nav(-1)">▲</button>
+    <span class="nav-counter" id="nav-count">0/0</span>
+    <button class="nav-btn" onclick="nav(1)">▼</button>
 </div>
 
+<!-- 导出菜单 Action Sheet -->
+<div id="action-sheet-overlay" onclick="closeActionSheet()">
+    <div class="action-sheet" onclick="event.stopPropagation()">
+        <button class="action-btn" onclick="exportImage()">📸 复制长截图</button>
+        <button class="action-btn" onclick="exportPDF()">📄 保存为 PDF</button>
+        <button class="action-btn cancel" onclick="closeActionSheet()">取消</button>
+    </div>
+</div>
+
+<!-- Loading Toast -->
+<div id="loading-toast">处理中...</div>
+
 <script>
-    // 强制阻止 iOS 双指缩放
-    document.addEventListener('gesturestart', function(e) {
-        e.preventDefault();
-    });
+    document.addEventListener('gesturestart', e => e.preventDefault());
 
-    // 变量定义
-    const oldInput = document.getElementById('oldText');
-    const newInput = document.getElementById('newText');
-    const resultBox = document.getElementById('result-container');
-    const resLabel = document.getElementById('resLabel');
-    const inputContainer = document.getElementById('input-container');
-    const expandBar = document.getElementById('expand-bar');
-    const navBar = document.getElementById('diff-nav-bar');
-    const navCounter = document.getElementById('nav-counter');
-    
-    let currentMode = 'word'; // 默认按词
-    let changesElements = [];
-    let currentChangeIndex = -1;
+    const els = {
+        old: document.getElementById('oldText'),
+        new: document.getElementById('newText'),
+        inputBox: document.getElementById('input-container'),
+        resWrapper: document.getElementById('result-wrapper'),
+        resBox: document.getElementById('result-container'),
+        navBar: document.getElementById('diff-nav-bar'),
+        navCount: document.getElementById('nav-count'),
+        stats: document.getElementById('diff-stats'),
+        btnExport: document.getElementById('btn-export'),
+        sheet: document.getElementById('action-sheet-overlay'),
+        loading: document.getElementById('loading-toast')
+    };
 
-    // 模式切换
-    function setMode(mode) {
-        currentMode = mode;
-        document.getElementById('opt-word').className = mode === 'word' ? 'segment-opt active' : 'segment-opt';
-        document.getElementById('opt-char').className = mode === 'char' ? 'segment-opt active' : 'segment-opt';
-        
-        // 保存偏好
-        localStorage.setItem('diff_mode', mode);
+    let state = {
+        mode: localStorage.getItem('diff_mode') || 'word',
+        changes: [],
+        idx: -1
+    };
+
+    updateModeBtn();
+
+    function startCompare() {
+        renderDiff();
+        toggleEditMode(false);
     }
 
-    function computeDiff() {
-        const oldStr = oldInput.value;
-        const newStr = newInput.value;
+    function renderDiff() {
+        if (typeof Diff === 'undefined') return alert("Diff库加载失败");
+        
+        const oldStr = els.old.value;
+        const newStr = els.new.value;
+        const diffFn = state.mode === 'char' ? Diff.diffChars : Diff.diffWords;
+        const diffData = diffFn(oldStr, newStr);
 
-        if (!oldStr && !newStr) {
-            resultBox.innerHTML = '<div class="empty-tip">请粘贴文本开始比较</div>';
-            showResult();
-            navBar.classList.remove('show');
-            return;
-        }
-
-        if (typeof Diff === 'undefined') {
-            alert("Diff 库未加载，请联网刷新。");
-            return;
-        }
-
-        // 根据模式选择算法
-        const diff = currentMode === 'char' 
-            ? Diff.diffChars(oldStr, newStr) 
-            : Diff.diffWords(oldStr, newStr);
-            
         const fragment = document.createDocumentFragment();
+        let addCount = 0, delCount = 0;
 
-        diff.forEach((part) => {
+        diffData.forEach(part => {
             const span = document.createElement(part.added ? 'ins' : part.removed ? 'del' : 'span');
             span.textContent = part.value;
             fragment.appendChild(span);
+            if(part.added) addCount++;
+            if(part.removed) delCount++;
         });
 
-        resultBox.innerHTML = "";
-        resultBox.appendChild(fragment);
+        els.resBox.innerHTML = '';
+        els.resBox.appendChild(fragment);
+        els.stats.textContent = `-${delCount} / +${addCount}`;
         
-        toggleEditMode(false);
-        showResult();
-        initNavigation();
+        initNav();
     }
 
-    function initNavigation() {
-        changesElements = resultBox.querySelectorAll('ins, del');
-        currentChangeIndex = -1;
-        
-        if (changesElements.length > 0) {
-            navBar.classList.add('show');
+    function switchMode(mode) {
+        if (state.mode === mode) return;
+        state.mode = mode;
+        localStorage.setItem('diff_mode', mode);
+        updateModeBtn();
+        renderDiff();
+    }
+
+    function updateModeBtn() {
+        document.getElementById('btn-word').className = state.mode === 'word' ? 'seg-btn active' : 'seg-btn';
+        document.getElementById('btn-char').className = state.mode === 'char' ? 'seg-btn active' : 'seg-btn';
+    }
+
+    function initNav() {
+        state.changes = els.resBox.querySelectorAll('ins, del');
+        state.idx = -1;
+        if (state.changes.length > 0) {
+            els.navBar.classList.add('show');
             updateNavUI();
-            navigateDiff(1); // 自动定位第一个
+            nav(1);
         } else {
-            navBar.classList.remove('show');
+            els.navBar.classList.remove('show');
         }
     }
 
-    function navigateDiff(step) {
-        if (changesElements.length === 0) return;
-
-        if (currentChangeIndex >= 0 && currentChangeIndex < changesElements.length) {
-            changesElements[currentChangeIndex].classList.remove('active-change');
-        }
-
-        currentChangeIndex += step;
-
-        // 循环跳转逻辑
-        if (currentChangeIndex >= changesElements.length) currentChangeIndex = 0;
-        if (currentChangeIndex < 0) currentChangeIndex = changesElements.length - 1;
-
-        const target = changesElements[currentChangeIndex];
-        target.classList.add('active-change');
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    function nav(step) {
+        if (!state.changes.length) return;
+        if (state.idx >= 0) state.changes[state.idx].classList.remove('active-change');
+        state.idx += step;
+        if (state.idx >= state.changes.length) state.idx = 0;
+        if (state.idx < 0) state.idx = state.changes.length - 1;
+        
+        const el = state.changes[state.idx];
+        el.classList.add('active-change');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         updateNavUI();
     }
 
     function updateNavUI() {
-        navCounter.textContent = `${currentChangeIndex + 1} / ${changesElements.length}`;
+        els.navCount.textContent = `${state.idx + 1}/${state.changes.length}`;
     }
 
-    function toggleEditMode(isShowInputs) {
-        if (isShowInputs) {
-            inputContainer.classList.remove('hidden');
-            expandBar.classList.remove('show');
-            navBar.classList.remove('show');
+    function toggleEditMode(showInput) {
+        if (showInput) {
+            els.inputBox.classList.remove('hidden');
+            els.resWrapper.classList.remove('show');
+            els.navBar.classList.remove('show');
+            els.btnExport.style.visibility = 'hidden';
         } else {
-            inputContainer.classList.add('hidden');
-            expandBar.classList.add('show');
+            els.inputBox.classList.add('hidden');
+            els.resWrapper.classList.add('show');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            els.btnExport.style.visibility = 'visible';
         }
     }
 
-    function showResult() {
-        resultBox.classList.add('show');
-        resLabel.style.display = 'block';
+    // --- 导出功能 ---
+
+    function openActionSheet() { els.sheet.classList.add('show'); }
+    function closeActionSheet() { els.sheet.classList.remove('show'); }
+    function showLoading() { els.loading.style.display = 'block'; }
+    function hideLoading() { els.loading.style.display = 'none'; }
+
+    // 通用截图生成器
+    async function generateCanvas() {
+        showLoading();
+        closeActionSheet();
+
+        // 临时样式调整以优化截图效果
+        const target = els.resBox;
+        const originalStyle = target.getAttribute('style');
+        
+        // 强制背景色，防止透明
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        target.style.backgroundColor = isDark ? '#1C1C1E' : '#FFFFFF';
+        target.style.color = isDark ? '#FFFFFF' : '#000000';
+        target.classList.add('screenshot-mode'); // 增加内边距
+
+        try {
+            const canvas = await html2canvas(target, {
+                scale: 2, // 提高清晰度
+                useCORS: true,
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                windowWidth: target.scrollWidth,
+                windowHeight: target.scrollHeight
+            });
+            
+            // 恢复样式
+            target.classList.remove('screenshot-mode');
+            target.setAttribute('style', originalStyle || '');
+            
+            return canvas;
+        } catch (e) {
+            alert('生成截图失败: ' + e.message);
+            hideLoading();
+            return null;
+        }
+    }
+
+    async function exportImage() {
+        if (!navigator.clipboard || !navigator.clipboard.write) {
+            alert("您的浏览器不支持直接写入剪贴板，请使用PDF导出功能。");
+            return;
+        }
+
+        const canvas = await generateCanvas();
+        if (!canvas) return;
+
+        canvas.toBlob(async (blob) => {
+            try {
+                // 写入剪贴板
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                alert("✅ 长截图已复制！\n您可以直接粘贴到微信或备忘录。");
+            } catch (err) {
+                console.error(err);
+                alert("复制失败。请尝试使用PDF保存。");
+            } finally {
+                hideLoading();
+            }
+        }, 'image/png');
+    }
+
+    async function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const canvas = await generateCanvas();
+        if (!canvas) return;
+
+        try {
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+
+            // 创建PDF，页面大小设为图片大小 (单位: pt)
+            // 0.75 是 px 到 pt 的转换比例
+            const pdf = new jsPDF({
+                orientation: imgWidth > imgHeight ? 'l' : 'p',
+                unit: 'px',
+                format: [imgWidth, imgHeight] 
+            });
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+            pdf.save('Diff_Result.pdf');
+        } catch (e) {
+            console.error(e);
+            alert("PDF生成失败");
+        } finally {
+            hideLoading();
+        }
     }
 
     function clearAll() {
-        if(confirm("清空所有内容？")) {
-            oldInput.value = "";
-            newInput.value = "";
-            resultBox.innerHTML = "";
-            resultBox.classList.remove('show');
-            resLabel.style.display = 'none';
-            navBar.classList.remove('show');
-            
-            localStorage.removeItem('diff_old');
-            localStorage.removeItem('diff_new');
+        if(confirm("确定清空？")) {
+            els.old.value = ''; els.new.value = '';
+            localStorage.removeItem('diff_old'); localStorage.removeItem('diff_new');
             toggleEditMode(true);
         }
     }
 
-    // 初始化加载
     window.addEventListener('load', () => {
-        const savedOld = localStorage.getItem('diff_old');
-        const savedNew = localStorage.getItem('diff_new');
-        const savedMode = localStorage.getItem('diff_mode');
-        
-        if (savedOld) oldInput.value = savedOld;
-        if (savedNew) newInput.value = savedNew;
-        if (savedMode) setMode(savedMode);
+        const sOld = localStorage.getItem('diff_old');
+        const sNew = localStorage.getItem('diff_new');
+        if (sOld) els.old.value = sOld;
+        if (sNew) els.new.value = sNew;
     });
-
-    oldInput.addEventListener('input', () => localStorage.setItem('diff_old', oldInput.value));
-    newInput.addEventListener('input', () => localStorage.setItem('diff_new', newInput.value));
-
+    els.old.addEventListener('input', () => localStorage.setItem('diff_old', els.old.value));
+    els.new.addEventListener('input', () => localStorage.setItem('diff_new', els.new.value));
 </script>
-
 </body>
 </html>
