@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- iOS Web App 配置 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="文本比对">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/007AFF/ffffff?text=Diff">
+    
+    <title>文本差异比对</title>
+
+    <!-- 引入 Diff 算法库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text: #000000;
+            --del-bg: #ffeef0;
+            --del-color: #b31d28;
+            --ins-bg: #e6ffec;
+            --ins-color: #22863a;
+            --border: #C6C6C8;
+            --header-height: 50px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overscroll-behavior-y: none;
+        }
+
+        header {
+            background: var(--card-bg);
+            padding: max(10px, env(safe-area-inset-top)) 15px 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            font-weight: 600;
+            font-size: 17px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .btn-link {
+            color: var(--primary);
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        /* 输入区域容器 */
+        #input-container {
+            transition: opacity 0.3s ease;
+        }
+        
+        #input-container.hidden {
+            display: none;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            margin-left: 4px;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 16px; 
+            resize: none;
+            background: var(--card-bg);
+            appearance: none;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+        }
+
+        .btn-compare {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(0,122,255,0.3);
+            cursor: pointer;
+        }
+
+        .btn-compare:active { opacity: 0.8; transform: scale(0.98); }
+
+        /* 折叠后的提示条 */
+        #expand-bar {
+            display: none; /* 默认隐藏 */
+            background: #e3effc;
+            color: var(--primary);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border: 1px dashed var(--primary);
+        }
+
+        #expand-bar.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 结果显示区域 */
+        #result-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 100px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            line-height: 1.8;
+            word-wrap: break-word;
+            display: none;
+            font-size: 17px;
+        }
+
+        #result-container.show { display: block; }
+
+        del {
+            background-color: var(--del-bg);
+            color: var(--del-color);
+            text-decoration: line-through;
+            text-decoration-color: rgba(179, 29, 40, 0.5);
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        ins {
+            background-color: var(--ins-bg);
+            color: var(--ins-color);
+            text-decoration: none;
+            border-bottom: 2px solid var(--ins-color);
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        .empty-tip { text-align: center; color: #999; margin-top: 30px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <button class="btn-link" onclick="clearAll()">清空</button>
+    <span>文本修订比较</span>
+    <div style="width: 35px;"></div>
+</header>
+
+<main>
+    <!-- 折叠后的展开按钮 -->
+    <div id="expand-bar" onclick="toggleEditMode(true)">
+        📝 点击此处 修改原文或新文
+    </div>
+
+    <!-- 输入区域 (包含按钮) -->
+    <div id="input-container">
+        <div class="input-group">
+            <div>
+                <div class="label">原文 (Original)</div>
+                <textarea id="oldText" placeholder="在此粘贴原始文本..."></textarea>
+            </div>
+            
+            <div>
+                <div class="label">新文 (Modified)</div>
+                <textarea id="newText" placeholder="在此粘贴修改后的文本..."></textarea>
+            </div>
+        </div>
+
+        <button class="btn-compare" onclick="computeDiff()">开始比较</button>
+    </div>
+
+    <!-- 结果区域 -->
+    <div id="result-wrapper">
+        <div class="label" id="resLabel" style="display:none; margin-top:10px;">比较结果 (Result):</div>
+        <div id="result-container"></div>
+    </div>
+</main>
+
+<script>
+    const oldInput = document.getElementById('oldText');
+    const newInput = document.getElementById('newText');
+    const resultBox = document.getElementById('result-container');
+    const resLabel = document.getElementById('resLabel');
+    const inputContainer = document.getElementById('input-container');
+    const expandBar = document.getElementById('expand-bar');
+
+    // 核心比较函数
+    function computeDiff() {
+        const oldStr = oldInput.value;
+        const newStr = newInput.value;
+
+        if (!oldStr && !newStr) {
+            resultBox.innerHTML = '<div class="empty-tip">请输入文本进行比较</div>';
+            showResult();
+            return;
+        }
+
+        if (typeof Diff === 'undefined') {
+            alert("Diff 库加载失败，请检查网络。");
+            return;
+        }
+
+        // 单词级比较
+        const diff = Diff.diffWords(oldStr, newStr);
+        const fragment = document.createDocumentFragment();
+
+        diff.forEach((part) => {
+            const span = document.createElement(part.added ? 'ins' : part.removed ? 'del' : 'span');
+            span.textContent = part.value;
+            fragment.appendChild(span);
+        });
+
+        resultBox.innerHTML = "";
+        resultBox.appendChild(fragment);
+        
+        // 切换视图状态：隐藏输入，显示结果
+        toggleEditMode(false);
+        showResult();
+    }
+
+    // 切换编辑模式 (isShowInputs: true=显示输入框, false=隐藏输入框显示条)
+    function toggleEditMode(isShowInputs) {
+        if (isShowInputs) {
+            // 展开输入框
+            inputContainer.classList.remove('hidden');
+            expandBar.classList.remove('show');
+            // 隐藏结果标题，避免干扰，结果内容保留方便对比查看，或者也可以选择隐藏
+            // resLabel.style.display = 'none'; 
+        } else {
+            // 隐藏输入框，显示"点击修改"条
+            inputContainer.classList.add('hidden');
+            expandBar.classList.add('show');
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function showResult() {
+        resultBox.classList.add('show');
+        resLabel.style.display = 'block';
+    }
+
+    function clearAll() {
+        if(confirm("确定清空所有内容吗？")) {
+            oldInput.value = "";
+            newInput.value = "";
+            resultBox.innerHTML = "";
+            resultBox.classList.remove('show');
+            resLabel.style.display = 'none';
+            
+            localStorage.removeItem('diff_old');
+            localStorage.removeItem('diff_new');
+
+            // 强制恢复到编辑模式
+            toggleEditMode(true);
+        }
+    }
+
+    // 缓存逻辑
+    window.addEventListener('load', () => {
+        const savedOld = localStorage.getItem('diff_old');
+        const savedNew = localStorage.getItem('diff_new');
+        if (savedOld) oldInput.value = savedOld;
+        if (savedNew) newInput.value = savedNew;
+    });
+
+    oldInput.addEventListener('input', () => localStorage.setItem('diff_old', oldInput.value));
+    newInput.addEventListener('input', () => localStorage.setItem('diff_new', newInput.value));
+
+</script>
+
+</body>
+</html>
