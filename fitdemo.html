@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1, minimum-scale=1" />
+  <title>FitCare 月度健康管理 | Mobile Demo</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --accent:#2563eb;
+      --good:#16a34a;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --shadow: 0 10px 30px rgba(2,6,23,.08);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+    html, body{
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      touch-action: manipulation;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", Arial;
+      background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 40%);
+      color:var(--text);
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+    .wrap{
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 18px 16px 120px;
+      width: 100%;
+      height: auto;
+      min-height: 100%;
+    }
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      padding: 12px 0 10px;
+      background: linear-gradient(180deg, rgba(238,242,255,.92) 0%, rgba(246,247,251,.86) 70%, rgba(246,247,251,0) 100%);
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:10px;margin:2px 2px 10px}
+    .logo{
+      width: 40px;height:40px;border-radius: 14px;
+      background: radial-gradient(circle at 30% 30%, #93c5fd 0%, #2563eb 55%, #1e40af 100%);
+      box-shadow: 0 10px 24px rgba(37,99,235,.25);
+      position: relative; overflow:hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute;inset:-40%;
+      background: conic-gradient(from 190deg, rgba(255,255,255,.75), rgba(255,255,255,0), rgba(255,255,255,.45), rgba(255,255,255,0));
+      animation: spin 5s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .brand h1{font-size:16px;margin:0;line-height:1.1;letter-spacing:.2px}
+    .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+    .pillrow{display:flex;gap:10px;flex-wrap:wrap;margin:10px 2px 0}
+    .pill{
+      display:flex;align-items:center;gap:8px;
+      padding: 8px 10px;
+      border: 1px solid rgba(148,163,184,.35);
+      background: rgba(255,255,255,.7);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: default;
+      user-select:none;
+    }
+    .pill.clickable{cursor:pointer}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px}
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(226,232,240,.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .card h2{
+      margin:0 0 8px;
+      font-size: 14px;
+      letter-spacing:.2px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .sub{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .kpis{display:grid;grid-template-columns: repeat(3, 1fr);gap:10px;margin-top: 10px}
+    .kpi{
+      padding: 10px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      border: 1px solid rgba(226,232,240,.9);
+    }
+    .kpi .v{font-size:16px;font-weight:700;margin:2px 0}
+    .kpi .l{font-size:11px;color:var(--muted)}
+    .badge{
+      font-size: 11px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(37,99,235,.08);
+      color: var(--accent);
+      border: 1px solid rgba(37,99,235,.18);
+      white-space: nowrap;
+    }
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btn{
+      border:none;border-radius:12px;padding:10px 12px;
+      font-size:13px;font-weight:650;
+      background: var(--accent); color:#fff;
+      box-shadow: 0 10px 20px rgba(37,99,235,.18);
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:#fff;color:var(--text);
+      border: 1px solid rgba(226,232,240,.95);
+      box-shadow:none;
+    }
+    .btn.ghost{
+      background:transparent;color:var(--accent);
+      border: 1px dashed rgba(37,99,235,.35);
+      box-shadow:none;
+    }
+    .btn:active{transform:translateY(1px)}
+    .progress{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-top:8px}
+    .bar{
+      height:100%;width:0%;
+      background: linear-gradient(90deg, #60a5fa 0%, #2563eb 50%, #1e40af 100%);
+      border-radius:999px;transition:width .25s ease;
+    }
+    .mini{font-size:12px;color:var(--muted);margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .item{
+      border: 1px solid rgba(226,232,240,.95);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      margin-bottom: 4px;
+    }
+    .item .t{font-size:13px;font-weight:650;margin:0 0 6px}
+    .item .m{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
+    .hr{height:1px;background:var(--line);margin: 10px 0}
+    .field{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+    .field label{font-size:12px;color:var(--muted)}
+    input, textarea, select{
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(226,232,240,.95);
+      outline:none;
+      font-size: 13px;
+      background:#fff;
+    }
+    textarea{min-height: 92px; resize: vertical}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 360px){
+      .two{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr}
+    }
+    .tabs{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,.92);
+      border-top: 1px solid rgba(226,232,240,.95);
+      backdrop-filter: blur(10px);
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+      display:flex;justify-content:space-around;gap:8px;
+      z-index: 90;
+    }
+    .tab{
+      flex:1;border-radius:14px;padding:10px 8px;text-align:center;
+      font-size:11px;color:var(--muted);
+      border: 1px solid transparent; cursor:pointer; user-select:none;
+    }
+    .tab.active{
+      background: rgba(37,99,235,.08);
+      color: var(--accent);
+      border-color: rgba(37,99,235,.18);
+      font-weight: 700;
+    }
+    .hidden{display:none!important}
+    .overlay:not(.hidden){opacity:1;transition:opacity .2s ease}
+    .overlay.hidden{pointer-events:none}
+    .hint{
+      font-size:12px;color:var(--muted);line-height:1.5;
+      background:#f8fafc;border:1px solid rgba(226,232,240,.95);
+      border-radius:14px;padding:10px;
+    }
+
+    /* Floating action buttons - unified style */
+    .float-btn{
+      position: fixed;
+      right: 16px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 94;
+      cursor: pointer;
+      user-select: none;
+      font-size: 28px;
+      font-weight: 900;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+      background: rgba(255,255,255,.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      padding: 0;
+      backdrop-filter: blur(4px);
+    }
+    .float-btn:hover{
+      transform: translateY(-6px);
+      box-shadow: 0 8px 20px rgba(0,0,0,.15);
+      background: rgba(255,255,255,.1);
+    }
+    .float-btn:active{
+      transform: scale(0.95) translateY(-3px);
+    }
+    
+    /* Coach button */
+    .float-btn.coach{
+      bottom: 220px;
+      z-index: 95;
+    }
+    
+    /* Workout checkin button */
+    .float-btn.workout{
+      bottom: 160px;
+    }
+    
+    /* Meal checkin button */
+    .float-btn.meal{
+      bottom: 100px;
+    }
+
+    /* Modal & Drawer */
+    .overlay{
+      position: fixed; inset: 0;
+      background: rgba(2,6,23,.45);
+      z-index: 120;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 14px;
+    }
+    .sheet{
+      width: min(520px, 100%);
+      background:#fff;
+      border-radius: 18px;
+      border: 1px solid rgba(226,232,240,.95);
+      box-shadow: 0 20px 60px rgba(2,6,23,.25);
+      overflow:hidden;
+    }
+    .sheet-head{
+      padding: 12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom: 1px solid rgba(226,232,240,.95);
+    }
+    .sheet-title{font-weight: 800}
+    .closebtn{
+      border: 1px solid rgba(226,232,240,.95);
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor:pointer;
+    }
+    .sheet-body{padding: 14px; max-height: 70vh; overflow:auto}
+    .sheet-actions{
+      padding: 12px 14px;
+      border-top: 1px solid rgba(226,232,240,.95);
+      display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;
+    }
+
+    /* Image cards */
+    .photo-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .photo{
+      border-radius: 14px;
+      border: 1px solid rgba(226,232,240,.95);
+      overflow:hidden;
+      background:#fff;
+      aspect-ratio: 1 / 1;
+      display:flex;align-items:center;justify-content:center;
+      position: relative;
+    }
+    .photo img{width:100%;height:100%;object-fit:cover}
+    .photo small{
+      position:absolute;left:8px;bottom:8px;
+      background: rgba(15,23,42,.72);
+      color:#fff;
+      padding: 4px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+    }
+
+    /* Editable plan block */
+    .editable{
+      border: 1px solid rgba(226,232,240,.95);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background:#fff;
+      line-height:1.55;
+      font-size: 13px;
+      white-space: pre-wrap;
+      outline: none;
+    }
+    .editable:focus{
+      border-color: rgba(37,99,235,.35);
+      box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+    }
+
+    .tagline{
+      font-size:11px;color:var(--muted);
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>FitCare 月度健康管理（Demo）</h1>
+          <p>统一界面：总览 / 健身方案 / 营养计划 / 复盘奖励</p>
+        </div>
+      </div>
+
+      <div class="pillrow">
+        <div class="pill"><span class="dot" id="statusDot"></span><span id="serviceStatus">服务中</span></div>
+        <div class="pill"><span>本月：</span><b id="monthLabel"></b></div>
+        <div class="pill clickable" id="coachPill" title="点击打开教练信息与反馈">
+          <span>专属教练：</span><b id="coachName"></b><span style="color:var(--muted)">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 总览 -->
+    <section id="view-home" class="grid">
+      <!-- 用户概览：保持原来不变（丰富度保持） -->
+      <div class="card">
+        <h2>
+          <span>用户概览</span>
+          <span class="badge" id="planNameBadge">标准版 · 月度订阅</span>
+        </h2>
+        <p class="sub" id="userLine">—</p>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="l">体脂率</div>
+            <div class="v" id="kpiBfp">—</div>
+            <div class="l">基线</div>
+          </div>
+          <div class="kpi">
+            <div class="l">本周训练完成</div>
+            <div class="v" id="kpiWorkout">0/0</div>
+            <div class="l">计划次数</div>
+          </div>
+          <div class="kpi">
+            <div class="l">饮食执行</div>
+            <div class="v" id="kpiDiet">—</div>
+            <div class="l">本周自评</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <div>
+            <div style="font-size:12px;color:var(--muted)">月度目标进度</div>
+            <div style="font-weight:750;font-size:14px;margin-top:2px" id="goalTitle">—</div>
+          </div>
+          <div class="badge" id="goalStatus">进行中</div>
+        </div>
+        <div class="progress"><div class="bar" id="goalBar"></div></div>
+        <div class="mini">
+          <span id="goalProgressText">—</span>
+          <span id="goalDueText">—</span>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn" onclick="go('plan')">进入健身方案</button>
+          <button class="btn secondary" onclick="go('nutrition')">进入营养计划</button>
+          <button class="btn ghost" onclick="go('review')">查看复盘奖励</button>
+        </div>
+      </div>
+
+      <!-- 本周课程（含预约状态与跳转链接按钮） -->
+      <div class="card">
+        <h2><span>本周课程</span><span class="badge">预约跳转</span></h2>
+        <p class="sub">展示本周预约状态；点击“去预约/查看”将跳转到第三方预约系统。</p>
+        <div class="list" id="weekClassList"></div>
+      </div>
+
+      <!-- 今日饮食规划 -->
+      <div class="card">
+        <h2><span>今日饮食规划</span><span class="badge">Today</span></h2>
+        <p class="sub" id="todayDietSummary">—</p>
+        <div class="list" id="todayMealList"></div>
+        <div class="tagline">提示：详细“本月饮食计划 + 用餐打卡/识别”请到【营养计划】。</div>
+      </div>
+
+      <!-- 消息及建议 -->
+      <div class="card">
+        <h2><span>消息及建议</span><span class="badge" id="msgBadge">0</span></h2>
+        <div class="list" id="msgList"></div>
+        <div class="btnrow">
+          <button class="btn secondary" onclick="seedDemo()">重置示例数据</button>
+          <button class="btn secondary" onclick="exportData()">导出JSON</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 健身方案（原“本月方案”，内容保持；新增拍照上传打卡） -->
+    <section id="view-plan" class="grid hidden">
+      <div class="card">
+        <h2><span>健身方案</span><span class="badge">月度目标 & 执行</span></h2>
+        <p class="sub">本页保留原“目标 + 辅助目标 + 风险预案 + 训练结构 + 饮食重点 + 教练确认”的完整内容，并新增训练打卡（拍照）。</p>
+
+        <div class="item">
+          <p class="t">月度主目标</p>
+          <p class="m" id="planGoalText">—</p>
+        </div>
+        <div class="two">
+          <div class="item">
+            <p class="t">辅助目标</p>
+            <p class="m" id="planAssistText">—</p>
+          </div>
+          <div class="item">
+            <p class="t">风险点与预案</p>
+            <p class="m" id="planRiskText">—</p>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="item">
+          <p class="t">训练结构（周）</p>
+          <p class="m" id="planWorkoutText">—</p>
+        </div>
+        <div class="item">
+          <p class="t">饮食原则（本月重点）</p>
+          <p class="m" id="planDietText">—</p>
+        </div>
+        <div class="item">
+          <p class="t">教练确认</p>
+          <p class="m" id="coachConfirmText">—</p>
+        </div>
+      </div>
+
+      <!-- 训练打卡（仅显示记录） -->
+      <div class="card">
+        <h2><span>训练打卡记录</span><span class="badge">最新 6 条</span></h2>
+        <div class="photo-grid" id="workoutPhotoGrid"></div>
+      </div>
+    </section>
+
+    <!-- 营养计划 -->
+    <section id="view-nutrition" class="grid hidden">
+      <div class="card">
+        <h2><span>本月饮食计划</span></h2>
+        <div id="nutritionEditable" style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;padding:10px;background:#f8fafc;border-radius:12px;border:1px solid rgba(226,232,240,.95)"></div>
+      </div>
+
+      <!-- 每日饮食计划 -->
+      <div class="card">
+        <h2 style="justify-content:space-between">
+          <span>每日饮食计划</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span class="badge">按日期</span>
+            <button class="btn secondary" id="editDailyMealBtn" style="padding:6px 10px;border-radius:10px;font-size:12px" onclick="toggleEditDailyMeal()">编辑</button>
+          </span>
+        </h2>
+        <p class="sub">查看和编辑每天的固定三餐（早、午、晚）和补给。</p>
+
+        <div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:8px">
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('mon')">周一</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('tue')">周二</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('wed')">周三</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('thu')">周四</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('fri')">周五</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('sat')">周六</button>
+          <button class="btn secondary" style="padding:8px 12px;border-radius:10px;white-space:nowrap;flex-shrink:0" onclick="selectDayMeal('sun')">周日</button>
+        </div>
+
+        <div id="mealPlanContent" style="margin-top:10px"></div>
+      </div>
+
+      <!-- 用餐打卡（仅显示记录） -->
+      <div class="card">
+        <h2><span>用餐打卡记录</span><span class="badge">最新 6 条</span></h2>
+        <div class="photo-grid" id="mealPhotoGrid"></div>
+      </div>
+    </section>
+
+    <!-- 复盘奖励（保持） -->
+    <section id="view-review" class="grid hidden">
+      <div class="card">
+        <h2><span>月度目标达成总结</span><span class="badge">留存核心</span></h2>
+        <p class="sub">月末复盘：完成情况、原因分析、下月策略。强调共同复盘，不做考核式表达。</p>
+
+        <div class="item">
+          <p class="t">达成度</p>
+          <p class="m" id="sAchievement">—</p>
+        </div>
+        <div class="item">
+          <p class="t">本月亮点</p>
+          <p class="m" id="sWins">—</p>
+        </div>
+        <div class="item">
+          <p class="t">需要改进</p>
+          <p class="m" id="sGaps">—</p>
+        </div>
+        <div class="btnrow">
+          <button class="btn" onclick="openModal('monthlyReview')">填写/更新复盘</button>
+          <button class="btn secondary" onclick="openModal('reward')">查看奖励</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span>奖励与里程碑</span><span class="badge">轻激励</span></h2>
+        <div class="list" id="rewardList"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Bottom Tabs (4 tabs) -->
+  <nav class="tabs" aria-label="Bottom tabs">
+    <div class="tab active" data-tab="home" onclick="go('home')">总览</div>
+    <div class="tab" data-tab="plan" onclick="go('plan')">健身方案</div>
+    <div class="tab" data-tab="nutrition" onclick="go('nutrition')">营养计划</div>
+    <div class="tab" data-tab="review" onclick="go('review')">复盘奖励</div>
+  </nav>
+
+  <!-- Floating action buttons -->
+  <div class="float-btn coach" id="coachFloat" title="联系教练（企业微信）" onclick="openWeCom()">👤</div>
+  <div class="float-btn workout" id="workoutCheckinFloat" title="新增训练打卡" onclick="openModal('workoutCheckin')">💪</div>
+  <div class="float-btn meal" id="mealCheckinFloat" title="新增用餐打卡" onclick="openModal('mealCheckin')">🍽️</div>
+
+  <!-- Generic Modal -->
+  <div id="modal" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="modalTitle">—</div>
+        <button class="closebtn" onclick="closeModal()">关闭</button>
+      </div>
+      <div class="sheet-body" id="modalBody"></div>
+      <div class="sheet-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Coach Drawer (pill opens): contact + feedback in drawer -->
+  <div id="coachDrawer" class="overlay hidden" role="dialog" aria-modal="true" onclick="if(event.target.id==='coachDrawer')closeCoachDrawer()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">专属教练</div>
+        <button class="closebtn" onclick="closeCoachDrawer()">关闭</button>
+      </div>
+      <div class="sheet-body">
+        <!-- Coach Introduction Card with Resume -->
+        <div style="display:grid;grid-template-columns:1fr 0.25fr;gap:12px;margin-bottom:16px;padding:12px;background:rgba(37,99,235,.05);border-radius:14px;border:1px solid rgba(37,99,235,.15)">
+          <div>
+            <div style="margin-bottom:10px">
+              <p class="t" id="coachDrawerName" style="margin:0 0 4px">—</p>
+              <p class="m" id="coachDrawerMeta" style="margin:0 0 8px">—</p>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.5">
+              <p style="margin:0 0 6px;font-weight:650;color:var(--muted)">专业认证</p>
+              <p style="margin:0 0 8px;color:var(--muted)">• 国家级健身教练资格证（CPT）<br/>• 营养师资格证（CND）<br/>• 运动康复专业认证</p>
+              <p style="margin:8px 0 6px;font-weight:650;color:var(--muted)">工作经历</p>
+              <p style="margin:0 0 8px;color:var(--muted)">• 12 年健身行业经验<br/>• 指导学员 500+ 人</p>
+              <p style="margin:8px 0 6px;font-weight:650;color:var(--muted)">专长领域</p>
+              <p style="margin:0;color:var(--muted)">• 科学减脂、康复训练</p>
+            </div>
+          </div>
+          <div style="width:60px;height:60px;background:linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">👩‍🏫</div>
+        </div>
+
+        <div class="item">
+          <p class="t">监督规则</p>
+          <p class="m" id="coachRuleText">—</p>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn" onclick="openWeCom()">联系教练（企业微信）</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="item">
+          <p class="t">服务反馈</p>
+          <p class="m">反馈将用于优化下月服务质量与沟通方式（Demo：本地保存）。</p>
+
+          <div class="field">
+            <label>教练支持是否及时？</label>
+            <select id="fbTimely">
+              <option value="很及时">很及时</option>
+              <option value="基本及时">基本及时</option>
+              <option value="一般">一般</option>
+              <option value="不及时">不及时</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>建议是否可执行？</label>
+            <select id="fbPractical">
+              <option value="非常可执行">非常可执行</option>
+              <option value="较可执行">较可执行</option>
+              <option value="一般">一般</option>
+              <option value="不太可执行">不太可执行</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>希望下月调整沟通方式（选填）</label>
+            <textarea id="fbNote" placeholder="例如：希望固定周二晚复盘；更偏向语音沟通。"></textarea>
+          </div>
+
+          <div class="btnrow">
+            <button class="btn secondary" onclick="saveFeedback()">提交反馈</button>
+          </div>
+
+          <div class="hint" style="margin-top:10px" id="fbLast">尚未提交反馈</div>
+        </div>
+
+        <div class="hint" style="margin-top:12px">
+          免责声明：本服务提供一般性运动与饮食行为建议，不构成医疗诊断或治疗；如出现明显不适或既往伤病加重，请及时咨询医生或专业机构。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const KEY = "fitcare_demo_v2_clean";
+
+    // ======= State =======
+    const defaultState = () => ({
+      meta: {
+        monthLabel: new Date().toLocaleDateString("zh-CN", { year:"numeric", month:"long" }),
+        status: "active", // active/warn/paused
+        planName: "标准版 · 月度订阅",
+        coachName: "Mia",
+        coachServiceTime: "工作日 9:00–18:00（非即时回复）",
+        // Demo: set your enterprise wecom link/deeplink here
+        wecomUrl: "https://work.weixin.qq.com/" // replace with your real link if available
+      },
+      user: {
+        name: "Roger",
+        memberId: "FC-2025-1208",
+        city: "Shanghai",
+        goalPref: "减脂 + 体态",
+      },
+      assessment: {
+        bfp: 26.0
+      },
+      monthly: {
+        goalTitle: "12周计划第1月：体脂率下降并建立规律训练",
+        goalText: "本月主目标：体脂率 -1%（26% → 25%），腰围 -2cm；建立每周2-3次力量训练习惯。",
+        assistText: "辅助目标：① 每周完成≥2次训练；② 每天蛋白质优先；③ 晚间零食次数≤2次/周。",
+        riskText: "风险：加班/应酬导致中断。预案：改为20分钟短训 + 次日补足；应酬当天控制主食与酒精，次日优先高蛋白+步行。",
+        workoutText: "每周 3 次：A（下肢+核心）/B（上肢+核心）/C（全身循环+轻有氧），单次45-60min。",
+        dietText: "本月饮食重点：① 每餐先蛋白质；② 夜宵/甜饮替代方案；③ 应酬当天“少酒+少主食+多蔬菜”。",
+        coachConfirmText: "教练确认：本月不用追求极限减重，先把训练频次稳定下来；饮食抓住晚间和应酬两个关键场景即可。",
+        progress: 35,
+        due: "本月月底"
+      },
+      weekly: {
+        plan: 3,
+        done: 2,
+        dietSelf: "良好",
+        note: "周三应酬，周五加班，训练中断一次。"
+      },
+      weekCourses: [
+        { day:"周一", time:"19:30", type:"力量训练", status:"已完成", link:"https://example.com/booking" },
+        { day:"周三", time:"20:00", type:"团课 HIIT", status:"已预约", link:"https://example.com/booking" },
+        { day:"周五", time:"19:00", type:"拉伸恢复", status:"待预约", link:"https://example.com/booking" }
+      ],
+      todayDiet: {
+        target: "热量：1800–2100 kcal；蛋白质优先；晚间减少高糖零食",
+        meals: [
+          { name:"早餐", plan:"鸡蛋/酸奶/燕麦（蛋白质优先）" },
+          { name:"午餐", plan:"一份优质蛋白 + 两份蔬菜 + 一拳主食" },
+          { name:"晚餐", plan:"主食减半，优先蔬菜与蛋白质" },
+          { name:"加餐", plan:"咖啡/坚果少量，避免含糖饮料" }
+        ]
+      },
+      messages: [
+        { level:"info", text:"本月目标与方案已生成；请优先把每周训练频次稳定下来。" },
+        { level:"warn", text:"提示：本周训练完成度偏低，可启用“短训预案（20分钟）”保持节奏。" }
+      ],
+      coach: {
+        rule: "监督规则：以用户每周反馈为主；若连续2周训练未完成或饮食持续偏离，教练将主动建议调整方案。"
+      },
+      nutrition: {
+        coachPlanText:
+`【教练推荐】
+1）热量范围：1800–2100 kcal/天（不追求极限节食）
+2）蛋白质优先：每餐先吃蛋白质（肉/蛋/奶/豆制品），再吃蔬菜，最后主食
+3）晚间关键：夜宵/甜饮替代（美式/气泡水/无糖酸奶）
+4）应酬策略：少酒 + 少主食 + 多蔬菜；次日优先高蛋白 + 步行
+5）执行建议：每周至少2次训练日按计划吃；非训练日也保持蛋白质优先`,
+        userEditedText: null,
+        lastSavedAt: null,
+        lastReviewRequestAt: null,
+        dailyPlans: {
+          mon: { breakfast: "鸡蛋3个 + 燕麦片50g + 牛奶200ml", lunch: "鸡胸肉150g + 糙米200g + 西兰花100g + 橄榄油5ml", dinner: "三文鱼150g + 白粥200g + 青菜150g", snack: "杏仁25g + 黑咖啡" },
+          tue: { breakfast: "希腊酸奶150g + 蓝莓50g + 坚果20g", lunch: "牛肉100g + 红薯200g + 胡萝卜100g + 芝麻油5ml", dinner: "豆腐150g + 米饭150g + 菠菜100g", snack: "香蕉1根" },
+          wed: { breakfast: "全麦面包2片 + 番茄酱 + 鸡蛋2个 + 牛奶", lunch: "猪里脊150g + 糙米200g + 番茄100g + 洋葱50g", dinner: "鱼类150g + 清粥150g + 冬瓜100g + 盐/调料", snack: "坚果混合25g" },
+          thu: { breakfast: "燕麦粥（燕麦50g + 牛奶200ml + 蜂蜜10g）+ 草莓", lunch: "虾仁150g + 糙米200g + 豌豆100g + 洋葱50g", dinner: "鸡腿150g + 红薯200g + 生菜100g", snack: "酸奶100g" },
+          fri: { breakfast: "蛋白粉25g + 香蕉 + 牛奶200ml + 燕麦30g", lunch: "牛肉150g + 白米200g + 胡萝卜100g + 玉米50g", dinner: "鱼类150g + 清汤 + 豆腐100g + 青菜100g", snack: "核桃15g" },
+          sat: { breakfast: "全麦面包3片 + 花生酱15g + 鸡蛋1个 + 橙汁", lunch: "鸡胸肉150g + 糙米200g + 南瓜100g + 洋葱50g", dinner: "虾150g + 清粥150g + 冬瓜100g + 香菇50g", snack: "低脂牛奶200ml" },
+          sun: { breakfast: "酸奶150g + 格兰诺拉麦片40g + 蜂蜜10g + 浆果", lunch: "猪肉150g + 红薯200g + 西兰花100g + 芝麻油", dinner: "鱼类150g + 米饭150g + 青菜100g + 番茄汤", snack: "坚果棒1根" }
+        },
+        currentDay: "mon"
+      },
+      checkins: {
+        workouts: [
+          // { at, title, note, photoDataUrl? }
+        ],
+        meals: [
+          // { at, mealType, desc, kcal, photoDataUrl? }
+        ]
+      },
+      summary: {
+        achievement: "进行中（建议月末填写）",
+        wins: "—",
+        gaps: "—"
+      },
+      rewards: [
+        { t:"达成本月主目标", m:"奖励：下月增加一次深度调整（30min）", ok:false },
+        { t:"连续2周完成≥2次训练", m:"奖励：优先排课/优先咨询", ok:true },
+        { t:"连续3个月订阅", m:"奖励：体测升级或沟通频次升级", ok:false }
+      ],
+      feedback: {
+        lastAt: null,
+        timely: null,
+        practical: null,
+        note: null
+      }
+    });
+
+    function load(){
+      const raw = localStorage.getItem(KEY);
+      if(!raw) { const s = defaultState(); save(s); return s; }
+      try { return JSON.parse(raw); } catch(e){
+        const s = defaultState(); save(s); return s;
+      }
+    }
+    function save(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+    let state = load();
+
+    // ======= Navigation =======
+    function go(tab){
+      const views = {
+        home:"view-home",
+        plan:"view-plan",
+        nutrition:"view-nutrition",
+        review:"view-review"
+      };
+      Object.values(views).forEach(id => document.getElementById(id).classList.add("hidden"));
+      document.getElementById(views[tab] || views.home).classList.remove("hidden");
+
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      const el = document.querySelector(`.tab[data-tab="${tab}"]`);
+      if(el) el.classList.add("active");
+
+      // Show all floating buttons on every tab
+      document.getElementById("workoutCheckinFloat").style.display = "flex";
+      document.getElementById("mealCheckinFloat").style.display = "flex";
+
+      window.scrollTo({top:0, behavior:"smooth"});
+      renderFloatingCoachOffset();
+    }
+
+    // ======= Rendering =======
+    function renderAll(){
+      // Top pills
+      document.getElementById("monthLabel").textContent = state.meta.monthLabel;
+      document.getElementById("coachName").textContent = state.meta.coachName;
+      document.getElementById("planNameBadge").textContent = state.meta.planName;
+
+      // status
+      const dot = document.getElementById("statusDot");
+      const statusText = document.getElementById("serviceStatus");
+      dot.classList.remove("warn","bad");
+      if(state.meta.status==="active"){
+        statusText.textContent = "服务中";
+      }else if(state.meta.status==="warn"){
+        dot.classList.add("warn");
+        statusText.textContent = "需关注";
+      }else{
+        dot.classList.add("bad");
+        statusText.textContent = "暂停";
+      }
+
+      // user overview (keep rich)
+      document.getElementById("userLine").textContent =
+        `${state.user.name} · ${state.user.city} · 会员ID ${state.user.memberId} · 目标偏好：${state.user.goalPref}`;
+
+      document.getElementById("kpiBfp").textContent = `${Number(state.assessment.bfp||0).toFixed(1)}%`;
+      document.getElementById("kpiWorkout").textContent = `${state.weekly.done}/${state.weekly.plan}`;
+      document.getElementById("kpiDiet").textContent = state.weekly.dietSelf;
+
+      // goal
+      document.getElementById("goalTitle").textContent = state.monthly.goalTitle;
+      document.getElementById("goalBar").style.width = `${clamp(state.monthly.progress,0,100)}%`;
+      document.getElementById("goalProgressText").textContent = `当前进度：${state.monthly.progress}%`;
+      document.getElementById("goalDueText").textContent = `截止：${state.monthly.due}`;
+      document.getElementById("goalStatus").textContent =
+        state.monthly.progress>=100 ? "已完成" : (state.monthly.progress>=60 ? "推进良好" : "进行中");
+
+      // week courses
+      const weekClassList = document.getElementById("weekClassList");
+      weekClassList.innerHTML = "";
+      state.weekCourses.forEach(c=>{
+        const badge = c.status==="已完成" ? "✅" : (c.status==="已预约" ? "🗓️" : "⏳");
+        const actionText = c.status==="待预约" ? "去预约" : "查看";
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="row" style="align-items:flex-start">
+            <div>
+              <p class="t">${badge} ${escapeHtml(c.day)} ${escapeHtml(c.time)} · ${escapeHtml(c.type)}</p>
+              <p class="m">状态：<b>${escapeHtml(c.status)}</b></p>
+            </div>
+            <a class="btn secondary" style="padding:8px 10px;border-radius:12px" href="${escapeAttr(c.link)}" target="_blank" rel="noopener">${actionText}</a>
+          </div>
+        `;
+        weekClassList.appendChild(div);
+      });
+
+      // today diet
+      document.getElementById("todayDietSummary").textContent = state.todayDiet.target;
+      const mealList = document.getElementById("todayMealList");
+      mealList.innerHTML = "";
+      state.todayDiet.meals.forEach(m=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<p class="t">${escapeHtml(m.name)}</p><p class="m">${escapeHtml(m.plan)}</p>`;
+        mealList.appendChild(div);
+      });
+
+      // messages
+      const msgList = document.getElementById("msgList");
+      msgList.innerHTML = "";
+      document.getElementById("msgBadge").textContent = String(state.messages.length);
+      state.messages.slice().reverse().forEach(m=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        const badge = m.level==="warn" ? "⚠️" : (m.level==="bad" ? "⛔" : "ℹ️");
+        div.innerHTML = `<p class="t">${badge} ${escapeHtml(m.text)}</p><p class="m">（只读建议 / Demo）</p>`;
+        msgList.appendChild(div);
+      });
+
+      // plan content
+      document.getElementById("planGoalText").textContent = state.monthly.goalText;
+      document.getElementById("planAssistText").textContent = state.monthly.assistText;
+      document.getElementById("planRiskText").textContent = state.monthly.riskText;
+      document.getElementById("planWorkoutText").textContent = state.monthly.workoutText;
+      document.getElementById("planDietText").textContent = state.monthly.dietText;
+      document.getElementById("coachConfirmText").textContent = state.monthly.coachConfirmText;
+
+      // workout photo grid (latest 6)
+      renderPhotoGrid("workoutPhotoGrid", state.checkins.workouts, "训练");
+
+      // nutrition editable
+      const text = state.nutrition.userEditedText ?? state.nutrition.coachPlanText;
+      const ed = document.getElementById("nutritionEditable");
+      if(ed.textContent.trim() !== text.trim()){
+        ed.textContent = text;
+      }
+
+      // daily meal plan - render first day
+      renderDailyMealPlan(state.nutrition.currentDay);
+
+      // meal photo grid (latest 6)
+      renderPhotoGrid("mealPhotoGrid", state.checkins.meals, "用餐");
+
+      // review
+      document.getElementById("sAchievement").textContent = state.summary.achievement;
+      document.getElementById("sWins").textContent = state.summary.wins;
+      document.getElementById("sGaps").textContent = state.summary.gaps;
+
+      const rewardList = document.getElementById("rewardList");
+      rewardList.innerHTML = "";
+      state.rewards.forEach(r=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        const status = r.ok ? "✅" : "⏳";
+        div.innerHTML = `<p class="t">${status} ${escapeHtml(r.t)}</p><p class="m">${escapeHtml(r.m)}</p>`;
+        rewardList.appendChild(div);
+      });
+
+      // coach drawer prefill
+      renderCoachDrawer();
+
+      renderFloatingCoachOffset();
+    }
+
+    function renderPhotoGrid(containerId, items, tag){
+      const grid = document.getElementById(containerId);
+      grid.innerHTML = "";
+      const latest = items.slice().sort((a,b)=>b.at-a.at).slice(0,6);
+      if(latest.length===0){
+        const div = document.createElement("div");
+        div.className = "hint";
+        div.textContent = `暂无${tag}打卡。`;
+        grid.appendChild(div);
+        return;
+      }
+      latest.forEach(it=>{
+        const cell = document.createElement("div");
+        cell.className = "photo";
+        if(it.photoDataUrl){
+          cell.innerHTML = `<img alt="" src="${escapeAttr(it.photoDataUrl)}" /><small>${escapeHtml(tag)}</small>`;
+        }else{
+          cell.innerHTML = `<div class="hint" style="margin:10px;text-align:center">无照片<br><span style="font-size:11px">${escapeHtml(tag)}记录</span></div>`;
+        }
+        grid.appendChild(cell);
+      });
+    }
+
+    function renderCoachDrawer(){
+      document.getElementById("coachDrawerName").textContent = `教练 ${state.meta.coachName}`;
+      document.getElementById("coachDrawerMeta").textContent = state.meta.coachServiceTime;
+      document.getElementById("coachRuleText").textContent = state.coach.rule;
+
+      // feedback
+      const fb = state.feedback;
+      if(fb.timely) document.getElementById("fbTimely").value = fb.timely;
+      if(fb.practical) document.getElementById("fbPractical").value = fb.practical;
+      document.getElementById("fbNote").value = fb.note || "";
+
+      const fbLast = document.getElementById("fbLast");
+      if(!fb.lastAt){
+        fbLast.textContent = "尚未提交反馈";
+      }else{
+        fbLast.textContent = `上次提交：${fmtTime(fb.lastAt)} · 及时性：${fb.timely} · 可执行性：${fb.practical}${fb.note ? " · 备注已填写" : ""}`;
+      }
+    }
+
+    function renderFloatingCoachOffset(){
+      // All floating buttons are now positioned via CSS
+    }
+
+    // ======= Coach / WeCom =======
+    function openWeCom(){
+      const url = state.meta.wecomUrl || "https://work.weixin.qq.com/";
+      window.open(url, "_blank", "noopener");
+    }
+    document.getElementById("coachPill").addEventListener("click", openCoachDrawer);
+
+    function openCoachDrawer(){
+      document.getElementById("coachDrawer").classList.remove("hidden");
+      renderCoachDrawer();
+    }
+    function closeCoachDrawer(){
+      const el = document.getElementById("coachDrawer");
+      el.classList.add("hidden");
+    }
+
+    // ======= Nutrition (Monthly plan - read only) =======
+    // 本月饮食计划为教练推荐的固定内容，只读，不需要编辑函数
+
+    function requestCoachReview(){
+      // record request time & add a system message (read-only)
+      state.nutrition.lastReviewRequestAt = Date.now();
+      state.messages.push({
+        level: "info",
+        text: "你已请求教练复核营养计划修改：请在企业微信中说明本次修改点（Demo 记录）。"
+      });
+      save(state);
+      renderAll();
+      toast("已记录复核请求，正在跳转企业微信");
+      openWeCom();
+    }
+
+    // ======= Daily Meal Plan =======
+    let isEditingDailyMeal = false;
+
+    function toggleEditDailyMeal(){
+      isEditingDailyMeal = !isEditingDailyMeal;
+      const btn = document.getElementById("editDailyMealBtn");
+      const cont = document.getElementById("mealPlanContent");
+      
+      if(isEditingDailyMeal){
+        btn.textContent = "完成";
+        btn.classList.remove('secondary');
+        // 切换到编辑模式 - 使所有输入框可编辑
+        const inputs = cont.querySelectorAll('input');
+        inputs.forEach(inp => inp.readOnly = false);
+        inputs[0]?.focus();
+      }else{
+        // 完成编辑 - 弹出需要事项对话
+        btn.textContent = "编辑";
+        btn.classList.add('secondary');
+        const inputs = cont.querySelectorAll('input');
+        inputs.forEach(inp => inp.readOnly = true);
+        // 保存並弹出教练复核对话
+        saveDailyMealQuiet();
+        openCoachReviewPrompt();
+      }
+    }
+
+    function renderDailyMealPlan(day){
+      state.nutrition.currentDay = day;
+      const plan = state.nutrition.dailyPlans[day] || {};
+      const cont = document.getElementById("mealPlanContent");
+      if(!cont) return;
+      
+      cont.innerHTML = `
+        <div class="item">
+          <p class="t">早餐</p>
+          <input type="text" id="meal-breakfast" value="${escapeAttr(plan.breakfast||'')}" style="width:100%;margin-top:4px" placeholder="输入早餐内容" readonly />
+        </div>
+        <div class="item">
+          <p class="t">午餐</p>
+          <input type="text" id="meal-lunch" value="${escapeAttr(plan.lunch||'')}" style="width:100%;margin-top:4px" placeholder="输入午餐内容" readonly />
+        </div>
+        <div class="item">
+          <p class="t">晚餐</p>
+          <input type="text" id="meal-dinner" value="${escapeAttr(plan.dinner||'')}" style="width:100%;margin-top:4px" placeholder="输入晚餐内容" readonly />
+        </div>
+        <div class="item">
+          <p class="t">补给</p>
+          <input type="text" id="meal-snack" value="${escapeAttr(plan.snack||'')}" style="width:100%;margin-top:4px" placeholder="输入补给内容" readonly />
+        </div>
+      `;
+    }
+
+    function selectDayMeal(day){
+      renderDailyMealPlan(day);
+      // 高亮选中的日期按钮
+      const btns = document.querySelectorAll('.card:nth-child(2) .btnrow .btn');
+      const days = ['mon','tue','wed','thu','fri','sat','sun'];
+      btns.forEach((btn,i)=>{
+        if(days[i]===day){
+          btn.classList.remove('secondary');
+        }else{
+          btn.classList.add('secondary');
+        }
+      });
+    }
+
+    function saveDailyMealQuiet(){
+      // 不弹提示，会取而弹出教练复核对话
+      const day = state.nutrition.currentDay;
+      state.nutrition.dailyPlans[day] = {
+        breakfast: document.getElementById('meal-breakfast').value.trim(),
+        lunch: document.getElementById('meal-lunch').value.trim(),
+        dinner: document.getElementById('meal-dinner').value.trim(),
+        snack: document.getElementById('meal-snack').value.trim()
+      };
+      save(state);
+    }
+
+    function openCoachReviewPrompt(){
+      openModalRaw("是否需要教练复核？", `
+        <p>您已不方便整理了每日饮食计划。是否需要请教练复核您的修改并给出建议？</p>
+        <div class="hint" style="margin-top:12px">如果您有特殊需求（妨迷、不耐受成分、爱好変化等），请在企业微信中告诉教练。</div>
+      `, [
+        { label:"是，来复核", cls:"", onClick: ()=>{ state.nutrition.lastReviewRequestAt = Date.now(); state.messages.push({ level:"info", text:"您已请教练复核每日餐駟修改，请在企业微信中查看（Demo记录）。" }); save(state); renderAll(); closeModal(); toast("已记录复核请求"); openWeCom(); }},
+        { label:"不需要，追下", cls:"secondary", onClick: closeModal }
+      ]);
+    }
+
+    // ======= Modal =======
+    function openModal(kind){
+      if(kind==="updateGoal"){
+        openModalRaw("更新月度进度", `
+          <div class="field">
+            <label>当前进度（0-100）</label>
+            <input id="mProgress" type="number" min="0" max="100" value="${escapeAttr(state.monthly.progress)}" />
+          </div>
+          <div class="field">
+            <label>目标状态（可选）</label>
+            <select id="mStatus">
+              <option value="进行中">进行中</option>
+              <option value="推进良好">推进良好</option>
+              <option value="已完成">已完成</option>
+            </select>
+          </div>
+          <div class="hint">提示：正式版可按“训练完成度 + 饮食执行 + 复评数据”综合计算进度。</div>
+        `, [
+          { label:"保存", cls:"", onClick: ()=>{
+            const p = Number(document.getElementById("mProgress").value || 0);
+            state.monthly.progress = clamp(p,0,100);
+            const s = document.getElementById("mStatus").value;
+            if(s==="已完成") state.monthly.progress = 100;
+
+            if(state.monthly.progress>=100){
+              state.summary.achievement = "已完成（请填写本月亮点与改进点）";
+              state.messages.push({ level:"info", text:"恭喜！你已标记本月目标完成，建议到“复盘奖励”填写总结。" });
+              state.rewards = state.rewards.map(r => r.t==="达成本月主目标" ? ({...r, ok:true}) : r);
+            }
+            state.meta.status = (state.monthly.progress<40 && state.weekly.plan>0 && (state.weekly.done/state.weekly.plan)<0.5) ? "warn" : "active";
+
+            save(state); renderAll(); closeModal(); toast("已更新");
+          }},
+          { label:"取消", cls:"secondary", onClick: closeModal }
+        ]);
+        setTimeout(()=>{
+          document.getElementById("mStatus").value =
+            (state.monthly.progress>=100?"已完成":(state.monthly.progress>=60?"推进良好":"进行中"));
+        },0);
+      }
+
+      if(kind==="weeklyRecord"){
+        openModalRaw("更新本周执行记录", `
+          <div class="two">
+            <div class="field">
+              <label>本周计划训练次数</label>
+              <input id="wkPlan" type="number" min="0" value="${escapeAttr(state.weekly.plan)}" />
+            </div>
+            <div class="field">
+              <label>本周已完成次数</label>
+              <input id="wkDone" type="number" min="0" value="${escapeAttr(state.weekly.done)}" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>本周饮食执行自评</label>
+            <select id="dietSelf">
+              ${["优秀","良好","一般","较差"].map(v=>`<option value="${v}">${v}</option>`).join("")}
+            </select>
+          </div>
+
+          <div class="field">
+            <label>本周简要备注（可写：应酬/加班/不适）</label>
+            <textarea id="wkNote" placeholder="例如：周三应酬，周五加班到凌晨，训练中断一次。">${escapeHtml(state.weekly.note || "")}</textarea>
+          </div>
+        `, [
+          { label:"保存", cls:"", onClick: ()=>{
+            const plan = Number(document.getElementById("wkPlan").value || 0);
+            const done = Number(document.getElementById("wkDone").value || 0);
+            const dietSelf = document.getElementById("dietSelf").value;
+            const note = document.getElementById("wkNote").value.trim();
+
+            state.weekly = { plan, done, dietSelf, note };
+
+            const ratio = plan>0 ? (done/plan) : 0;
+            if(plan>0 && ratio < 0.5){
+              state.meta.status = "warn";
+              state.messages.push({ level:"warn", text:"本周训练完成度偏低：建议启用短训预案（20分钟）保持节奏。" });
+            }else{
+              state.meta.status = "active";
+            }
+            save(state); renderAll(); closeModal(); toast("已保存");
+          }},
+          { label:"取消", cls:"secondary", onClick: closeModal }
+        ]);
+        setTimeout(()=>{ document.getElementById("dietSelf").value = state.weekly.dietSelf; },0);
+      }
+
+      if(kind==="workoutCheckin"){
+        openModalRaw("新增训练打卡", `
+          <div class="field">
+            <label>训练标题（可选）</label>
+            <input id="wTitle" placeholder="例如：力量训练 A / 拉伸恢复" />
+          </div>
+          <div class="field">
+            <label>备注（可选）</label>
+            <textarea id="wNote" placeholder="例如：下肢酸胀，整体状态OK。"></textarea>
+          </div>
+          <div class="field">
+            <label>上传照片（可选）</label>
+            <input id="wPhoto" type="file" accept="image/*" />
+            <div class="tagline">照片将压缩后保存在本地（Demo）。</div>
+          </div>
+        `, [
+          { label:"保存", cls:"", onClick: async ()=>{
+            const title = document.getElementById("wTitle").value.trim() || "训练打卡";
+            const note = document.getElementById("wNote").value.trim();
+            const file = document.getElementById("wPhoto").files?.[0] || null;
+
+            let photoDataUrl = null;
+            if(file){
+              try { photoDataUrl = await compressImageToDataUrl(file, 900, 0.82); }
+              catch(e){ /* ignore */ }
+            }
+            state.checkins.workouts.push({ at: Date.now(), title, note, photoDataUrl });
+            state.messages.push({ level:"info", text:"已新增训练打卡记录（如需调整方案，请直接联系教练）。" });
+            save(state); renderAll(); closeModal(); toast("已保存训练打卡");
+          }},
+          { label:"取消", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+
+      if(kind==="mealCheckin"){
+        openModalRaw("新增用餐打卡", `
+          <div class="field">
+            <label>拍照/上传照片</label>
+            <div style="border: 2px dashed rgba(37,99,235,.35); border-radius: 14px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s ease;" id="photoUploadBox" onclick="document.getElementById('mPhoto').click()">
+              <div style="font-size: 48px; margin-bottom: 10px">📸</div>
+              <p style="font-size: 14px; color: var(--accent); font-weight: 650; margin: 0">点击上传照片</p>
+              <p style="font-size: 12px; color: var(--muted); margin: 6px 0 0 0">支持 JPG、PNG 格式</p>
+              <input id="mPhoto" type="file" accept="image/*" style="display: none;" onchange="handlePhotoUpload()" />
+            </div>
+            <div id="photoPreview" style="margin-top: 10px"></div>
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label>记录时间</label>
+              <input id="mTime" type="text" value="${new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})}" readonly />
+            </div>
+            <div class="field">
+              <label>用餐类型</label>
+              <select id="mType">
+                <option value="早餐">早餐</option>
+                <option value="午餐">午餐</option>
+                <option value="晚餐">晚餐</option>
+                <option value="加餐">加餐</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="hint" style="background: rgba(37,99,235,.08); border: 1px solid rgba(37,99,235,.18)">
+            ✨ 上传照片后系统将自动生成描述和卡路里估算值。
+          </div>
+        `, [
+          { label:"保存", cls:"", onClick: async ()=>{
+            const mealType = document.getElementById("mType").value;
+            const file = document.getElementById("mPhoto").files?.[0] || null;
+
+            if(!file){
+              toast("请选择照片");
+              return;
+            }
+
+            let photoDataUrl = null;
+            try { photoDataUrl = await compressImageToDataUrl(file, 900, 0.82); }
+            catch(e){ /* ignore */ }
+
+            // Auto-generate description and calorie estimate
+            const desc = "照片已上传" + (mealType || "");
+            let kcal = 500; // default estimate
+            if(mealType==="早餐") kcal = 420;
+            else if(mealType==="午餐") kcal = 680;
+            else if(mealType==="晚餐") kcal = 720;
+            else kcal = 300;
+
+            state.checkins.meals.push({ at: Date.now(), mealType, desc, kcal, photoDataUrl });
+            save(state); renderAll(); closeModal(); toast("已保存用餐打卡，自动估算 " + kcal + " kcal");
+          }},
+          { label:"取消", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+
+      if(kind==="allWorkoutPhotos"){
+        const items = state.checkins.workouts.slice().sort((a,b)=>b.at-a.at);
+        openModalRaw("训练打卡记录（全部）", buildCheckinListHtml(items, "workout"), [
+          { label:"关闭", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+
+      if(kind==="allMealPhotos"){
+        const items = state.checkins.meals.slice().sort((a,b)=>b.at-a.at);
+        openModalRaw("用餐打卡记录（全部）", buildCheckinListHtml(items, "meal"), [
+          { label:"关闭", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+
+      if(kind==="monthlyReview"){
+        openModalRaw("填写月度复盘", `
+          <div class="field"><label>达成度描述</label><input id="sa" value="${escapeAttr(state.summary.achievement)}" /></div>
+          <div class="field"><label>本月亮点（做到了什么）</label><textarea id="sw">${escapeHtml(state.summary.wins)}</textarea></div>
+          <div class="field"><label>需要改进（为什么没做到/下月怎么做）</label><textarea id="sg">${escapeHtml(state.summary.gaps)}</textarea></div>
+        `, [
+          { label:"保存", cls:"", onClick: ()=>{
+            state.summary.achievement = document.getElementById("sa").value.trim();
+            state.summary.wins = document.getElementById("sw").value.trim();
+            state.summary.gaps = document.getElementById("sg").value.trim();
+            state.messages.push({ level:"info", text:"已更新本月复盘内容（Demo）。" });
+            save(state); renderAll(); closeModal(); toast("已保存");
+          }},
+          { label:"取消", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+
+      if(kind==="reward"){
+        const html = `
+          <div class="hint">奖励建议：以“服务权益”为主（优先排课/额外复盘/升级体测），避免成本失控。</div>
+          <div class="list" style="margin-top:10px">
+            ${state.rewards.map((r,i)=>`
+              <div class="item">
+                <p class="t">${r.ok?"✅":"⏳"} ${escapeHtml(r.t)}</p>
+                <p class="m">${escapeHtml(r.m)}</p>
+                <div class="btnrow" style="margin-top:8px">
+                  <button class="btn secondary" onclick="toggleReward(${i})">${r.ok?"标记未达成":"标记已达成"}</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        openModalRaw("奖励与里程碑", html, [
+          { label:"关闭", cls:"secondary", onClick: closeModal }
+        ]);
+      }
+    }
+
+    function buildCheckinListHtml(items, kind){
+      if(items.length===0) return `<div class="hint">暂无记录。</div>`;
+      return `
+        <div class="list">
+          ${items.map((it, idx)=>{
+            const when = fmtTime(it.at);
+            const title = kind==="workout"
+              ? escapeHtml(it.title || "训练打卡")
+              : `${escapeHtml(it.mealType || "用餐")} · ${escapeHtml(it.desc||"") || "（无描述）"}`;
+            const sub = kind==="workout"
+              ? escapeHtml(it.note || "—")
+              : `热量：<b>${Number(it.kcal||0)}</b> kcal（估算/可手改）`;
+            const img = it.photoDataUrl ? `<div style="margin-top:8px"><img src="${escapeAttr(it.photoDataUrl)}" style="width:100%;border-radius:14px;border:1px solid rgba(226,232,240,.95)" /></div>` : "";
+            const delBtn = `<button class="btn ghost" style="padding:8px 10px" onclick="deleteCheckin('${kind}', ${idx})">删除</button>`;
+            return `
+              <div class="item">
+                <div class="row" style="align-items:flex-start">
+                  <div style="flex:1">
+                    <p class="t">${title}</p>
+                    <p class="m">🕒 ${when}</p>
+                    <p class="m" style="margin-top:6px">${sub}</p>
+                  </div>
+                  ${delBtn}
+                </div>
+                ${img}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function deleteCheckin(kind, idx){
+      // Note: idx corresponds to current sorted list in modal, so we map by time+title to delete safely.
+      // We'll do a simple approach: reconstruct from modal order is hard; instead delete by matching timestamp in modal DOM is complex.
+      // For demo, we will delete by re-sorting same way and then removing that entry from original via timestamp.
+      const arr = (kind==="workout") ? state.checkins.workouts : state.checkins.meals;
+      const sorted = arr.slice().sort((a,b)=>b.at-a.at);
+      const target = sorted[idx];
+      if(!target) return;
+      const newArr = arr.filter(x => !(x.at===target.at && (kind==="workout" ? (x.title===target.title) : (x.mealType===target.mealType && x.desc===target.desc))));
+      if(kind==="workout") state.checkins.workouts = newArr;
+      else state.checkins.meals = newArr;
+      save(state);
+      renderAll();
+      // reopen modal to refresh
+      openModal(kind==="workout" ? "allWorkoutPhotos" : "allMealPhotos");
+      toast("已删除");
+    }
+
+    function toggleReward(i){
+      state.rewards[i].ok = !state.rewards[i].ok;
+      save(state);
+      renderAll();
+      openModal("reward");
+    }
+
+    function openModalRaw(title, bodyHtml, actions){
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalBody").innerHTML = bodyHtml;
+      const act = document.getElementById("modalActions");
+      act.innerHTML = "";
+      actions.forEach(a=>{
+        const b = document.createElement("button");
+        b.className = "btn " + (a.cls||"");
+        b.textContent = a.label;
+        b.onclick = a.onClick;
+        act.appendChild(b);
+      });
+      document.getElementById("modal").classList.remove("hidden");
+    }
+
+    function closeModal(){
+      document.getElementById("modal").classList.add("hidden");
+    }
+
+    // ======= Meal calorie estimation (Demo) =======
+    function estimateMealCalories(silent){
+      const typeEl = document.getElementById("mType");
+      const descEl = document.getElementById("mDesc");
+      const kcalEl = document.getElementById("mKcal");
+      if(!typeEl || !kcalEl) return;
+
+      const mealType = typeEl.value;
+      const desc = (descEl?.value || "").toLowerCase();
+
+      // If user wrote a number, try parse
+      const numMatch = desc.match(/(\d{2,4})\s*(kcal|千卡|卡|大卡)?/i);
+      if(numMatch){
+        kcalEl.value = String(clamp(Number(numMatch[1]), 0, 5000));
+        if(!silent) toast("已从描述中识别热量数值");
+        return;
+      }
+
+      // Simple keyword boosts
+      let base = 0;
+      if(mealType==="早餐") base = 420;
+      else if(mealType==="午餐") base = 680;
+      else if(mealType==="晚餐") base = 720;
+      else base = 260;
+
+      const boosts = [
+        { k:"奶茶", v:220 }, { k:"炸", v:260 }, { k:"烤肉", v:280 }, { k:"火锅", v:350 },
+        { k:"披萨", v:380 }, { k:"汉堡", v:320 }, { k:"面", v:180 }, { k:"米饭", v:160 },
+        { k:"沙拉", v:-120 }, { k:"鸡胸", v:-40 }, { k:"酸奶", v:-30 }, { k:"坚果", v:120 },
+        { k:"蛋糕", v:260 }, { k:"甜", v:180 }
+      ];
+      let delta = 0;
+      boosts.forEach(b=>{ if(desc.includes(b.k)) delta += b.v; });
+
+      // small random to look natural
+      const jitter = Math.round((Math.random()*0.18 - 0.09) * base);
+      const est = clamp(base + delta + jitter, 120, 1800);
+      kcalEl.value = String(est);
+      if(!silent) toast("已生成热量估算（可手动修改）");
+    }
+
+    // ======= Feedback =======
+    function saveFeedback(){
+      const timely = document.getElementById("fbTimely").value;
+      const practical = document.getElementById("fbPractical").value;
+      const note = document.getElementById("fbNote").value.trim();
+
+      state.feedback = { lastAt: Date.now(), timely, practical, note };
+      state.messages.push({ level:"info", text:"感谢反馈！我们会在下月服务中优化沟通方式与建议可执行性（Demo）。" });
+
+      save(state);
+      renderAll();
+      toast("反馈已提交");
+    }
+
+    // ======= Export / Seed =======
+    function seedDemo(){
+      state = defaultState();
+      save(state);
+      renderAll();
+      toast("已重置为示例数据");
+      go("home");
+    }
+
+    function exportData(){
+      const json = JSON.stringify(state, null, 2);
+      navigator.clipboard?.writeText(json).then(()=>{
+        toast("已复制JSON到剪贴板");
+      }).catch(()=>{
+        openModalRaw("导出JSON", `
+          <textarea style="width:100%;min-height:260px;border-radius:12px;border:1px solid rgba(226,232,240,.95);padding:10px;">${escapeHtml(json)}</textarea>
+        `, [{ label:"关闭", cls:"secondary", onClick: closeModal }]);
+      });
+    }
+
+    // ======= Utils =======
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+    function pad(n){ return String(n).padStart(2,"0"); }
+    function fmtTime(ts){
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[c]));
+    }
+    function escapeAttr(s){ return escapeHtml(s).replace(/\n/g, " "); }
+
+    function toast(text){
+      const t = document.createElement("div");
+      t.textContent = text;
+      Object.assign(t.style,{
+        position:"fixed", left:"50%", bottom:"132px",
+        transform:"translateX(-50%)",
+        background:"rgba(15,23,42,.92)",
+        color:"#fff",
+        padding:"10px 12px",
+        borderRadius:"12px",
+        fontSize:"12px",
+        zIndex: 200,
+        maxWidth:"min(520px, calc(100% - 24px))",
+        boxShadow:"0 10px 30px rgba(2,6,23,.35)"
+      });
+      document.body.appendChild(t);
+      setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .25s"; }, 1300);
+      setTimeout(()=>{ t.remove(); }, 1600);
+    }
+
+    // Image compression to base64 (keeps demo self-contained)
+    function handlePhotoUpload(){
+      const file = document.getElementById("mPhoto").files?.[0];
+      const previewBox = document.getElementById("photoPreview");
+      if(!file || !previewBox) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        previewBox.innerHTML = `<img src="${e.target.result}" style="width:100%;border-radius:14px;border:1px solid rgba(226,232,240,.95)" />`;
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function compressImageToDataUrl(file, maxSide=900, quality=0.82){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = e=>{
+          img.onload = ()=>{
+            const w = img.width, h = img.height;
+            const scale = Math.min(1, maxSide / Math.max(w,h));
+            const cw = Math.round(w*scale), ch = Math.round(h*scale);
+            const canvas = document.createElement("canvas");
+            canvas.width = cw; canvas.height = ch;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, cw, ch);
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ======= Init =======
+    // Prevent zoom on double-tap and pinch
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault();
+    }, false);
+    
+    // Prevent zoom via keyboard (Ctrl +/-)
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
+        e.preventDefault();
+      }
+    }, false);
+    
+    renderAll();
+    // 先初始化每日饮食计划
+    renderDailyMealPlan("mon");
+    go("home");
+  </script>
+</body>
+</html>
